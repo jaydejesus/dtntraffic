@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import core.Coord;
+import core.Road;
 
 /**
  * A Path between multiple Coordinates.
@@ -17,6 +18,7 @@ public class Path  {
 	private List<Coord> coords;
 	/** speeds in the path legs */
 	private List<Double> speeds;
+	private List<Road> roads;
 	private int nextWpIndex;
 
 	/**
@@ -26,6 +28,7 @@ public class Path  {
 		this.nextWpIndex = 0;
 		this.coords = new ArrayList<Coord>();
 		this.speeds = new ArrayList<Double>(1);
+		this.roads = new ArrayList<Road>();
 	}
 
 	/**
@@ -145,5 +148,13 @@ public class Path  {
 	
 	public int getWaypointIndex() {
 		return this.nextWpIndex;
+	}
+	
+	public void isInPath(Road r) {
+		
+	}
+	
+	public List<Coord> getSubpath(int from, int to) {
+		return this.getCoords().subList(from, to);
 	}
 }

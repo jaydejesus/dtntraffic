@@ -5,7 +5,7 @@
 trafficApp.type = TrafficApp
 trafficApp.interval = 1
 //trafficApp.destinationRange = 0,100
-trafficApp.destinationRange = 0,2000
+trafficApp.destinationRange = 0,1500
 trafficApp.pingSize = 5
 trafficApp.pongSize = 5
 trafficApp.passive = false

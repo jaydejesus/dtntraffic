@@ -42,6 +42,7 @@ public class EpidemicRouter extends ActiveRouter {
 
 		// Try first the messages that can be delivered to final recipient
 		if (exchangeDeliverableMessages() != null) {
+			System.out.println("EpidemicRouter update()");
 			return; // started a transfer, don't try others (yet)
 		}
 
@@ -67,5 +68,7 @@ public class EpidemicRouter extends ActiveRouter {
 	public EpidemicRouter replicate() {
 		return new EpidemicRouter(this);
 	}
+	
+	
 
 }

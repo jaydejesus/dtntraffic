@@ -1,24 +1,15 @@
 /* 
- * Copyright 2010 Aalto University, ComNet
+ * Copyright 2010 Aalto Universit	y, ComNet
  * Released under GPLv3. See LICENSE.txt for details. 
  */
 
 package applications;
 
 import java.util.List;
-import java.util.Map;
-import java.awt.geom.Line2D;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.Random;
 
 import report.TrafficAppReporter;
 import core.Application;
-import core.Connection;
 import core.Coord;
 import core.DTNHost;
 import core.Message;
@@ -28,10 +19,12 @@ import core.SimClock;
 import core.SimScenario;
 import core.World;
 
-import gui.playfield.MapGraphic;
 import movement.map.SimMap;
 import movement.Path;
+import movement.map.DijkstraPathFinder;
 import movement.map.MapNode;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -61,12 +54,31 @@ public class TrafficApp extends Application{
 	/** Application ID */
 	public static final String APP_ID = "fi.tkk.netlab.TrafficApp";
 	
-	public static String TRAFFIC_HEAVY = "heavyTraffic";
-	public static String TRAFFIC_MEDIUM = "mediumTraffic";
-	public static String TRAFFIC_LIGHT = "lightTraffic";
+	public static final String mTYPE = "type";
+	public static final String mLOCATION = "location";
+	public static final String mSPEED = "speed";
+	public static final String mCURRENT_ROAD = "currentRoad";
+	public static final String mCURRENT_ROAD_STATUS = "currentRoadStatus";
+	public static final String mTIME_CREATED = "timeCreated";
+	public static final String mDISTANCE_TO_FRONTNODE = "distanceToFrontNode";
+	
+	public static final String HEAVY_TRAFFIC = "HEAVY_TRAFFIC";
+	public static final String LIGHT_MODERATE_TRAFFIC = "LIGHT_TO_MODERATE_TRAFFIC";
+	
+	public static final String FREE_FLOW = "FREE_FLOW";
+	public static final String MEDIUM_FLOW = "MEDIUM_FLOW";
+	public static final String TRAFFIC_JAM = "MIGHT CAUSE HEAVY TRAFFIC!!!!";
+
+	public static final String LOW = "LOW_DENSITY";
+	public static final String MEDIUM = "MEDIUM_DENSITY";
+	public static final String HIGH = "HIGH_DENSITY";
+	
 	private static boolean doneRoadSegmentation = false;
+	
+	private static double FRESHNESS = 10.0;
+	private String currentRoadCondition = "";
+	private static final int VEHICLE_SIZE = 2;
 	// Private vars
-	private double average = 0;
 	
 	private double	lastAppUpdate = 0;
 	private double	appUpdateInterval = 5;
@@ -77,11 +89,17 @@ public class TrafficApp extends Application{
 	private int		appMsgSize=1;
 	private Random	rng;
 	private List<Message> msgs_list;
-	
-	private Line2D myRoadSegment;
-	private List<Coord> road_segments;
-	private static HashMap<Coord, List<Coord>> segmentsHashMap;
-	
+	private List<Message> neededMsgs;
+	private List<Message> unneededMsgs;
+	private HashMap<DTNHost, Message> msgsHash;
+	private double averageRoadSpeed;
+		
+	private List<DTNHost> sameLaneNodes;
+	private List<Message> frontNodesMsgs;
+	private DijkstraPathFinder alternativePathFinder;
+	private boolean limiter = false;
+	private int roadCapacity;
+	private String roadDensity = "";
 	
 	/** 
 	 * Creates a new ping application with the given settings.
@@ -126,8 +144,10 @@ public class TrafficApp extends Application{
 		this.appMsgSize = a.getAppMsgSize();
 		this.rng = new Random(this.seed);
 		this.msgs_list = new ArrayList<Message>();
-		this.segmentsHashMap = new HashMap<Coord, List<Coord>>();
-		this.road_segments = new ArrayList<Coord>();
+		this.sameLaneNodes = new ArrayList<DTNHost>();
+		this.frontNodesMsgs = new ArrayList<Message>();
+		this.neededMsgs = new ArrayList<Message>();
+		this.msgsHash = new HashMap<DTNHost, Message>();
 	}
 	
 	/** 
@@ -139,85 +159,211 @@ public class TrafficApp extends Application{
 	 */
 	@Override
 	public Message handle(Message msg, DTNHost host) {
-		String type = (String)msg.getProperty("type");
+		String type = (String)msg.getProperty(mTYPE);
 
+		String basis = "";
 		try {
 			 if (type==null) return msg;
-				if (msg.getTo()==host && type.equalsIgnoreCase("traffic")) {
-//					System.out.println(SimClock.getTime() + " --- " + host + " received " + msg.getFrom() + "'s message");
-					if(msgs_list!=null) {
-							for(Message mm : msgs_list) {
-								//System.out.println("msg: " + msg.getFrom() + " mm: " + mm.getFrom());
-								if(msg.getFrom().equals(mm.getFrom()))
-									
-									msgs_list.remove(mm);
-							}
-						
-					}
-					
-					msgs_list.add(msg);
+			 
+				if (type.equalsIgnoreCase("traffic")) {
 
-					getTrafficCondition(msgs_list, host);
+					if(!this.msgsHash.containsKey(msg.getFrom())) {
+						msgsHash.put(msg.getFrom(), msg);
+					}
+					else {
+						Message m = msgsHash.get(msg.getFrom());
+						if(msg.getCreationTime() > m.getCreationTime()) {
+							msgsHash.put(msg.getFrom(), msg);
+						}
+					}
+
+					classifyMsgs(msgsHash, host);
+					if(getTrafficCondition(this.neededMsgs, host) == TRAFFIC_JAM && !host.toString().startsWith("s")) {
+						System.out.println(host + " MUST REROUTE!!!!!");
+						getAlternativePath(host.getPreviousDestination(), host.getCurrentDestination(), host.getPath(), host);
+					}
+					if(this.neededMsgs.size() < 1)
+						basis = " based on own speed ";
+					else
+						basis = " based on " + this.neededMsgs.size() + " same lane nodes ";
 					
+//					super.sendEventToListeners("TrafficReport", host.getCurrentRoad(), basis, SimClock.getTime(), 
+//							getAverageRoadSpeed(this.neededMsgs, host), this.currentRoadCondition, null, host);
 					
+					this.limiter = false;
 				}				
 		 }catch(Exception e) {			 
 		 }		
 		return msg;
 	}
 
-	public double getTrafficCondition(List<Message> msgs, DTNHost host) {
-		this.average = 0;
-		double oppAve = 0;
-		this.nodeOnRoad = 0;
-		int oppCtr = 0;
-		String condition = "";
+	public void classifyMsgs(HashMap<DTNHost, Message> msgs, DTNHost host) {
+		this.neededMsgs.clear();
+
+		for(Message m : msgs.values()) {
+			if(SimClock.getTime() - m.getCreationTime() > 10.0) {
+//				msgs.remove(m.getFrom(), m);
+				continue;
+			}
+
+			if(host.getCurrentRoad().getRoadName().equals(((Road) m.getProperty(mCURRENT_ROAD)).getRoadName())) {
+				this.neededMsgs.add(m);
+				this.sameLaneNodes.add(m.getFrom());
+			}
+		}
+	}
+	
+	private double getAverageRoadSpeed(List<Message> msgs, DTNHost host) {
+		this.averageRoadSpeed = 0;
+		int nrofhosts = 0;
+
+//		System.out.println(host + " is commputing ave spd of " + msgs.size() + " same lane nodes");
 		
 		for(Message m : msgs) {
-			Road other = (Road) m.getProperty("currentRoad");
-			if(host.getCurrentRoad().getRoadName().equals(other.getRoadName())) {
-				this.average = this.average + (double) m.getProperty("speed");
-					this.nodeOnRoad++;
-			}
+			double spd = (double) m.getProperty(mSPEED);
+//			System.out.println(host + " is adding " + m + " of " + m.getFrom() + ": spd=" + spd + " m.speed=" + (double) m.getProperty(mSPEED));
+			
+			this.averageRoadSpeed += spd;
+			nrofhosts++;
 		}
-		this.average = this.average/this.nodeOnRoad;
-		if(this.average <= 5) {
-			condition = this.TRAFFIC_HEAVY;
-//			System.out.println(host + " in " + host.getLocation() + ". HEAVY TRAFFIC in " + host.getCurrentRoad().getRoadName());
-			if(host.toString().startsWith("n")) {
-				getAlternativePath(host.getPreviousDestination(), host.getCurrentPathDestination(), host.getPath());
-//				host.setRerouteWaypoint(host.getPreviousDestination());
-			}
-		}
-		else if(this.average > 10 && this.average <= 8)
-			condition = this.TRAFFIC_MEDIUM;
+//		System.out.println(host + " ave road spd: " + this.averageRoadSpeed/(double)nrofhosts + "nrofsamelanenodes: " + nrofhosts);
+		if(nrofhosts > 0)
+			this.averageRoadSpeed = this.averageRoadSpeed/(double)nrofhosts;
 		else
-			condition = this.TRAFFIC_LIGHT;
+			this.averageRoadSpeed = host.getCurrentSpeed();
 		
-		if(this.nodeOnRoad > 0) {
-			System.out.println(host + " local average on " + host.getCurrentRoad().getRoadName() + " with " + this.nodeOnRoad + " out of " + msgs.size() + " node/s : " + this.average + " " + condition);
-			super.sendEventToListeners("ToReporter", host.getCurrentRoad().getRoadName(), SimClock.getTime(), this.average, condition, this, host);
+		return this.averageRoadSpeed;
+	}
+	
+	private double getAverageFrontNodeDistance(List<Message> msgs, DTNHost host) {
+		double averageFrontDistance = 0;
+		double frontDistance;
+		for(Message m : msgs) {
+			frontDistance = (double) m.getProperty(mDISTANCE_TO_FRONTNODE);
+			averageFrontDistance = averageFrontDistance + frontDistance;
 		}
-		
-		return this.average;
+//		System.out.println(host + " same lane average front distance " + msgs.size() + ": " + averageFrontDistance);
+		return (double)averageFrontDistance/msgs.size();
 	}
 
-//	private boolean isInSameRoad(Line2D mine, Line2D l) {
-//		if(round(l.getX1()) == round(mine.getX1()) && round(l.getY1()) == round(mine.getY1()) 
-//				&& round(l.getX2()) == round(mine.getX2())&& round(l.getY2()) == round(mine.getY2())) { 
-//			return true;
-//		}
-//		else
-//			return false;
-//	}
-//
-//	public void makeTraffic(List<Message> mlist, DTNHost h) {
-//		for(Connection con : h.getConnections()) {
-//			if(h.getCurrentDestination() == con.getOtherNode(h).getCurrentDestination()) {
-////				if(isInSameRoad(getMyRoadSegment(), ))
+	public double getOppositeLaneNodesAverageFrontDistance(List<DTNHost> hosts) {
+		double ave = 0;
+		
+		for(DTNHost h : hosts) {
+//			ave = ave + h.getFrontDistance();
+		}
+//		System.out.println("Opposite lane Front distance ave" + hosts.size() + ": " + ave);
+		return (double)ave/hosts.size();
+	}
+	
+	public double getOppositeLaneAverageSpeed(List<DTNHost> hosts) {
+		double oppo_ave = 0;
+		
+		for(DTNHost h : hosts) {
+			oppo_ave = oppo_ave + h.getCurrentSpeed();
+		}
+		return oppo_ave;
+	}
+	
+	public List<Message> filterFrontNodes(List<Message> msgs, DTNHost host){
+		this.frontNodesMsgs.clear();
+//		System.out.print(host + " front nodes:");
+		for(Message m : msgs) {
+			DTNHost h = m.getFrom();
+			if(h.getLocation().distance(h.getCurrentDestination()) < host.getLocation().distance(host.getCurrentDestination())) {
+//				System.out.print(" " + h);
+				this.frontNodesMsgs.add(m);
+			}
+		}
+//		System.out.println();
+		return this.frontNodesMsgs;
+	}
+	
+	public int getRoadCapacity(Road r) {
+		this.roadCapacity =(int) (((Coord)r.getStartpoint()).distance((Coord)r.getEndpoint()) / VEHICLE_SIZE);
+		return this.roadCapacity;
+	}
+	
+	public String getRoadDensity(Road r, int nrOfVehicles) {
+
+		if(nrOfVehicles >= getRoadCapacity(r)/2)
+			this.roadDensity = HIGH;
+		else if(nrOfVehicles <= getRoadCapacity(r)/4)
+			this.roadDensity = LOW;
+		else
+			this.roadDensity = MEDIUM;
+		
+		return this.roadDensity;
+	}
+	
+	//changed msgs to consider for local average speed computation. only frontNodes will be considered 
+	public String getTrafficCondition(List<Message> msgs, DTNHost host) {
+		double ave_speed = getAverageRoadSpeed(filterFrontNodes(msgs, host), host);
+		double ave_frontDistance = getAverageFrontNodeDistance(msgs, host);
+
+		if(ave_speed >= 8.0) {
+			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(HIGH))
+				this.currentRoadCondition = MEDIUM_FLOW;
+			else
+				this.currentRoadCondition = FREE_FLOW;
+		}
+		else if(ave_speed <= 0.5) {
+			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(HIGH))
+				this.currentRoadCondition = TRAFFIC_JAM;
+			else if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(MEDIUM))
+				this.currentRoadCondition = MEDIUM_FLOW;
+			else {
+				this.currentRoadCondition = FREE_FLOW;
+			}
+		}
+		else {
+			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(LOW))
+				this.currentRoadCondition = FREE_FLOW;
+			else
+				this.currentRoadCondition = MEDIUM_FLOW;
+		}
+		
+		System.out.println(host + "road cap: " + getRoadCapacity(host.getCurrentRoad()) + " averageSpeed: " + ave_speed 
+				+ " density: " + msgs.size() + " " + getRoadDensity(host.getCurrentRoad(), msgs.size()) + " " + this.currentRoadCondition);
+		
+//		//if not high speed
+//		else {
+////			if(ave_frontDistance <= 5.0 && msgs.size() > 5) {
+////				this.currentRoadCondition = TRAFFIC_JAM;
+////			}
+//			if(ave_speed <= 0.5 && msgs.size() > 5 && host.getOppositeLaneNodes().size() > 5 && 
+//					!host.canOvertake()) {
+//				this.currentRoadCondition = TRAFFIC_JAM;
+//			}
+//			else {
+//				this.currentRoadCondition = MEDIUM_FLOW;
 //			}
 //		}
-//	}
+//		//high speed && low density
+//		if(ave_speed > 5.0 && host.getOppositeLaneNodes().size() < 5 && msgs.size() < 5) {
+//			this.currentRoadCondition = FREE_FLOW;
+//		}
+//		//low speed &&
+//		else {
+//			//dako it opposite lane density pero bulag bulag hira
+//			if(ave_frontDistance > 5.0) {
+//				this.currentRoadCondition = FREE_FLOW;
+//			}
+//			//dako it front density ngan dako it opposite lane density ngan dikit dikit masyado plus gutiay average speed;
+//			else if(ave_frontDistance <= 5.0 && msgs.size() > 5 && 
+//					 host.getOppositeLaneNodes().size() > 5 && getOppositeLaneNodesAverageFrontDistance(host.getOppositeLaneNodes()) <= 5.0) {
+//				this.currentRoadCondition = TRAFFIC_JAM;
+//			}
+//			//dako it opposite lane density pero bulag bulag hira
+//			else {
+//				this.currentRoadCondition = MEDIUM_FLOW;
+//			}
+//		}
+		
+//		System.out.println(host + " road condition: " + this.currentRoadCondition + " ------------" + SimClock.getTime());
+//		System.out.println("===============================================================================================");
+		return this.currentRoadCondition;
+	}
 
 	/** 
 	 * Draws a random host from the destination range
@@ -241,45 +387,59 @@ public class TrafficApp extends Application{
 
 	@Override
 	public void update(DTNHost host) {
-		
 		double curTime = SimClock.getTime();
 
 		try {
-			for(Connection con : host.getConnections()) {
-				
-				if (con.isUp()) {
-
+//			for(Connection con : host.getConnections()) {
+//				if (con.isUp()) {
 					if ((curTime - this.lastAppUpdate)% 2.0 == 0) {
 						
 						// Time to send a new ping
-						String id = "traffic";
-						String idd = SimClock.getIntTime() + "-" + host+" "+host.getCurrentRoad().getRoadName()+": " + host.getCurrentSpeed();
+						String id = host + "traffic-" + SimClock.getTime();
+//						String idd = host + "traffic" + con.getOtherNode(host);
 						
-						Message m = new Message(host, con.getOtherNode(host), id+idd, getAppMsgSize());
-						m.addProperty("type", id);
-						m.addProperty("location", host.getLocation());
-						m.addProperty("speed", host.getCurrentSpeed());
-						m.addProperty("currentRoad", host.getCurrentRoad());
-//						m.addProperty("currentRoadStatus", host.getCurrentRoadStatus());
+						Message m = new Message(host, null, id, getAppMsgSize());
+						m.addProperty(mTYPE, "traffic");
+//						m.addProperty("commonID", idd);
+						m.addProperty(mLOCATION, host.getLocation());
+						m.addProperty(mSPEED, host.getCurrentSpeed());
+						m.addProperty(mCURRENT_ROAD, host.getCurrentRoad());
+						m.addProperty(mCURRENT_ROAD_STATUS, host.getCurrentRoadStatus());
+						m.addProperty(mTIME_CREATED, SimClock.getTime()); //para pagcheck freshness
+						m.addProperty(mDISTANCE_TO_FRONTNODE, host.getLocation().distance(host.getFrontNode(host.getSameLaneNodes()).getLocation()));
+
+//						m.setTo(con.getOtherNode(host));
 						m.setAppID(APP_ID);
 						host.createNewMessage(m);
 
 						super.sendEventToListeners("SentPing", null, host);
 						//System.out.println(SimClock.getTime() + " --- " + host + " has sent a msg to connection: " + con.getOtherNode(host) + " @" +m.getCreationTime());
 						this.lastAppUpdate = curTime;
+						this.limiter = true;
 					}
-				}
+//				}
 
-			}
+//			}
 			
 		}catch(Exception e) {
 
 		}
 	}
-	
-	public void getAlternativePath(Coord start, Coord destination, Path path) {
+
+	private List<DTNHost> getSameLaneNodes() {
+		return this.sameLaneNodes;
+	}
+
+	public Path getAlternativePath(Coord start, Coord destination, Path path, DTNHost host) {
+		Path p = null;
+		MapNode s = host.getMovementModel().getMap().getNodeByCoord(start);
+		MapNode dest = host.getMovementModel().getMap().getNodeByCoord(destination);
+		
+		List<MapNode> altMapNodes = this.alternativePathFinder.getShortestPath(s, dest);
 		System.out.println("Rerouting -- starting from: " + start + " to destination: " + destination);
-//		System.out.println("Path: " + path);
+		
+		host.setReroutePath(p);
+		return p;
 	}
 
 	//compute travel time of host on current path
@@ -287,62 +447,9 @@ public class TrafficApp extends Application{
 		
 	}
 	
-//	public boolean isOnTheLine(Line2D l, Coord c) {
-//		double x1, x2, y1, y2;
-//
-//		x1 = l.getX1();
-//		x2 = l.getX2();
-//		y1 = l.getY1();
-//		y2 = l.getY2();
-//
-//		double m = (y2-y1)/(x2-x1);
-//		double b = y1 - (m * x1);
-//		if(round(c.getY()) == round((m * c.getX())+b)) {
-//			return true;
-//		}
-//		else {
-//			return false;
-//		}
-//	}
-	
-//	public Line2D getMyRoadSegment() {
-//		return this.myRoadSegment;
-//	}
-//	
-//	public Line2D getMyRoad(DTNHost h, Coord location, Coord waypoint) {
-//		Line2D myRoad = null;
-//		
-//		if(!this.segmentsHashMap.get(waypoint).equals(null)) {
-//			{
-//				for(Coord c : this.segmentsHashMap.get(waypoint)) {
-//					//myRoad = new Line2D.Double(round(waypoint.getX()), round(waypoint.getY()), round(c.getX()), round(c.getY()));
-//					myRoad = new Line2D.Double(waypoint.getX(), waypoint.getY(), c.getX(), c.getY());
-//					if(isOnTheLine(myRoad, location)) {
-//						break;
-//					}
-//				}
-//			}
-//			
-//		}
-//		this.myRoadSegment = myRoad;
-//		return this.myRoadSegment;
-//	}
-//	
-//	public void initRoadSegments() throws IOException{
-//		Coord c, c2;
-//		
-//		for(MapNode n : SimScenario.getInstance().getMap().getNodes()) {
-//			c = n.getLocation();
-//			this.road_segments = new ArrayList<Coord>();
-//			for(MapNode n2 : n.getNeighbors()) {
-//				
-//				c2 = n2.getLocation();
-//				this.road_segments.add(c2);
-//			}
-//			this.segmentsHashMap.put(c, this.road_segments);
-//		}
-//		this.doneRoadSegmentation = true;
-//	}
+	public void computeTotalTravelTime(){
+		
+	}
 	
 	public double round(double value) {
 		return (double)Math.round(value * 100)/100;
@@ -431,6 +538,10 @@ public class TrafficApp extends Application{
 	 */
 	public void setPingSize(int size) {
 		this.appMsgSize = size;
+	}
+	
+	public List<Message> getMsgsList(){
+		return this.msgs_list;
 	}
 
 }

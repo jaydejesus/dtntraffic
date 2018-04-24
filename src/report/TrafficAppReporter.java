@@ -5,21 +5,20 @@ import applications.TrafficApp;
 import core.Application;
 import core.ApplicationListener;
 import core.DTNHost;
+import core.Road;
 
 public class TrafficAppReporter extends Report implements ApplicationListener{
 
 	@Override
-	public void gotEvent(String event, Line2D myRoad, double time, double averageSpeed, String status, Application app, DTNHost host) {
-		double x1, x2, y1, y2;
-		x1 = round(myRoad.getX1());
-		x2 = round(myRoad.getX2());
-		y1 = round(myRoad.getY1());
-		y2 = round(myRoad.getY2());
-		String report = "@" + time + ": " + host + " on road segment (" + x1 + ", " +y1 + "), (" + x2 + ", " + y2 + "). Average speed is: " 
-				+ averageSpeed + " - " + status;
+	public void gotEvent(String event, Road myRoad, String basis, double time, double averageSpeed, String trafficCondition, Application app, DTNHost host) {
+	
+		//must add travel time 
+		
+		String report = host + " @ " + time + " on road segment " + myRoad.getStartpoint()+ ", " + myRoad.getEndpoint() + " Basis: " + basis + " Average speed is: " 
+				+ averageSpeed + " - " + trafficCondition;
 		if (!(app instanceof TrafficApp)) return;
 		
-		if(event.equalsIgnoreCase("ToReporter")) {
+		if(event.equalsIgnoreCase("TrafficReport")) {
 			write(report);
 		}
 	}
@@ -33,9 +32,5 @@ public class TrafficAppReporter extends Report implements ApplicationListener{
 	public void done() {
 		write("Done!");
 		super.done();
-	}
-	
-	public double round(double value) {
-		return (double)Math.round(value * 100)/100;
 	}
 }

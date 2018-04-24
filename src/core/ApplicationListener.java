@@ -35,7 +35,7 @@ public interface ApplicationListener {
 	public void gotEvent(String event, Object params, Application app,
 			DTNHost host);
 
-	public void gotEvent(String event, Line2D myRoad, double time, double averageSpeed, String status, Application app, DTNHost host);
+	void gotEvent(String event, Road myRoad, String basis, double time, double averageSpeed, String trafficCondition, Application app,
+			DTNHost host);
 
-	//public void gotEvent(String event, Line2D myRoad, Application app, DTNHost host, double averageSpeed, List<DTNHost> peers);
 }

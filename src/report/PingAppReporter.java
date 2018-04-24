@@ -11,6 +11,7 @@ import applications.PingApplication;
 import core.Application;
 import core.ApplicationListener;
 import core.DTNHost;
+import core.Road;
 
 /**
  * Reporter for the <code>PingApplication</code>. Counts the number of pings
@@ -77,10 +78,9 @@ public class PingAppReporter extends Report implements ApplicationListener {
 	}
 
 
-
 	@Override
-	public void gotEvent(String event, Line2D myRoad, double time, double averageSpeed, String status, Application app,
-			DTNHost host) {
+	public void gotEvent(String event, Road myRoad, String basis, double time, double averageSpeed,
+			String trafficCondition, Application app, DTNHost host) {
 		// TODO Auto-generated method stub
 		
 	}

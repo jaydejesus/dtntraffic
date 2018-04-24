@@ -7,8 +7,8 @@ Scenario.name = Test-5-nodes
 Scenario.simulateConnections = true
 Scenario.updateInterval = 1.0
 # 43200s == 12h
-Scenario.endTime = 10000
-Scenario.nrofHostGroups = 2
+Scenario.endTime = 1000
+Scenario.nrofHostGroups = 3
 
 
 ## Interface-specific settings:
@@ -43,10 +43,13 @@ wifiDirectInterface.transmitRange = 200
 # routeFile: route's file path - for MapRouteMovement
 # routeType: route's type - for MapRouteMovement
 
+PointsOfInterest.poiFile1 = data/CentralPOIs.wkt
+PointsOfInterest.poiFile2 = data/newsites.wkt
+
 # Common settings for all groups
-Group.movementModel = CarMovement
+Group.movementModel = ShortestPathMapBasedMovement
 Group.router = EpidemicRouter
-Group.bufferSize = 5M
+Group.bufferSize = 500M
 # All nodes have the Wifi Direct interface
 Group.nrofInterfaces = 1
 Group.interface1 = wifiDirectInterface
@@ -56,13 +59,23 @@ Group.sendQueueMode = 2
 
 # Walking speeds
 Group1.speed = 8.0, 11.0
-Group1.nrofHosts = 1500
+Group1.nrofHosts = 1
 Group1.groupID = n
+Group1.pois = 2, 0.01
 
-Group2.speed = 0.5, 1.0
-Group2.nrofHosts = 300
+Group2.speed = 0.3, 0.5
+Group2.nrofHosts = 0
 Group2.groupID = s
+Group2.pois = 2, 0.5
 
+Group3.speed = 8.0, 11.0
+Group3.nrofHosts = 0
+Group3.groupID = m
+Group3.pois = 2, 0.5
+
+Group4.speed = 8.0, 11.0
+Group4.nrofHosts = 0
+Group4.groupID = x
 
 ## Movement model settings
 # seed for movement models' pseudo random number generator (default = 0)
@@ -86,7 +99,7 @@ MapBasedMovement.nrofMapFiles = 2
 MapBasedMovement.mapFile1 = data/roads.wkt
 MapBasedMovement.mapFile2 = data/main_roads.wkt
 #MapBasedMovement.mapFile3 = data/pedestrian_paths.wkt
-#MapBasedMovement.mapFile4 = data/shops.wkt
+#MapBasedMovement.mapFile3 = data/CentralPOIs.wkt
 
 
 ##GUI

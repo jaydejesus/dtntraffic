@@ -8,9 +8,11 @@ import static core.Constants.DEBUG;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 
 import movement.CarMovement;
+import movement.MapBasedMovement;
 import movement.MovementModel;
 import movement.Path;
 import routing.MessageRouter;
@@ -20,7 +22,7 @@ import routing.util.RoutingInfo;
  * A DTN capable host.
  */
 public class DTNHost implements Comparable<DTNHost> {
-	private static final double SAFE_OVERTAKE_DISTANCE = 10;
+	private static final double SAFE_OVERTAKE_DISTANCE = 100;
 	private static final double FRONT_DISTANCE = 5;
 	private static int nextAddress = 0;
 	private int address;
@@ -33,6 +35,7 @@ public class DTNHost implements Comparable<DTNHost> {
 	private MessageRouter router;
 	private MovementModel movement;
 	private Path path;
+	private List<Coord> subpath;
 	private double speed;
 	private double nextTimeToMove;
 	private String name;
@@ -44,7 +47,11 @@ public class DTNHost implements Comparable<DTNHost> {
 	private Road currentRoad;
 	private List<DTNHost> otherNodesOnRoad;
 	private List<DTNHost> oppositeLane;
+	private List<String> pathRoads; 
+	private HashMap<String, Road> roads;
+	private boolean canOvertakeStatus;
 
+	private double frontDistance;
 	static {
 		DTNSim.registerForReset(DTNHost.class.getCanonicalName());
 		reset();
@@ -92,8 +99,12 @@ public class DTNHost implements Comparable<DTNHost> {
 
 		this.nextTimeToMove = movement.nextPathAvailable();
 		this.path = null;
+		this.subpath = null;
 		this.otherNodesOnRoad = new ArrayList<DTNHost>();
 		this.oppositeLane = new ArrayList<DTNHost>();
+		this.pathRoads = new ArrayList<String>();
+		this.roads = new HashMap<String, Road>();
+		this.subpath = new ArrayList<Coord>();
 		
 		if (movLs != null) { // inform movement listeners about the location
 			for (MovementListener l : movLs) {
@@ -118,6 +129,10 @@ public class DTNHost implements Comparable<DTNHost> {
 		nextAddress = 0;
 	}
 
+	public MapBasedMovement getMovementModel() {
+		return (MapBasedMovement) this.movement;
+	}
+	
 	/**
 	 * Returns true if this node is actively moving (false if not)
 	 * @return true if this node is actively moving (false if not)
@@ -213,7 +228,10 @@ public class DTNHost implements Comparable<DTNHost> {
 	public Path getPath() {
 		return this.path;
 	}
-
+	
+	public List<Coord> getSubpath(){
+		return this.subpath;
+	}
 
 	/**
 	 * Sets the Node's location overriding any location set by movement model
@@ -398,20 +416,30 @@ public class DTNHost implements Comparable<DTNHost> {
 				return;
 			}
 		}
+		//get nodes on host's current road (same and opposite lane)
 		this.getOtherNodesOnMyRoad();
 		
-		frontNode = this.getFrontNode(getSameLaneNodes()); 
+		//get current node infront of the host
+		frontNode = this.getFrontNode(getSameLaneNodes());
+		
 		if(frontNode != null) {
+			//checks host's distance from its front node if there is a node a infront and applies slowdown() if it needs to 
 			frontDistance = this.checkFrontDistance(frontNode);
+			
 			double temp = frontDistance - (frontDistance * 0.75);	
 			posMov = temp;
-			if(this.canOvertake(getOppositeLaneNodes(), frontNode) && this.getLocation().distance(frontNode.getLocation()) < FRONT_DISTANCE) {
+			if(temp <= 20.0 && !this.canOvertake(getOppositeLaneNodes(), frontNode))
+				this.slowDown(frontNode);
+			//check if host can overtake overtake frontNode
+			else if(this.canOvertake(getOppositeLaneNodes(), frontNode) && this.getLocation().distance(frontNode.getLocation()) < FRONT_DISTANCE) {
 				overtake();
 				posMov = timeIncrement * speed;
 			}
 			possibleMovement = posMov;
 		}
 		else {
+			if(frontNode == null && this.canOvertake(getOppositeLaneNodes(), frontNode))
+				overtake();
 			possibleMovement = timeIncrement * speed;
 		}
 		distance = this.location.distance(this.destination);
@@ -443,7 +471,7 @@ public class DTNHost implements Comparable<DTNHost> {
 	 */
 	private boolean setNextWaypoint() {
 		if (path == null) {
-			path = movement.getPath();
+			path = movement.getPath();			
 		}
 
 		if (path == null || !path.hasNext()) {
@@ -454,9 +482,13 @@ public class DTNHost implements Comparable<DTNHost> {
 
 		this.prevDestination = this.destination;		
 		this.destination = path.getNextWaypoint();
+		this.subpath = this.path.getSubpath(path.getWaypointIndex(), path.getPathSize());
+		getRoadsAhead();
+//		System.out.println(this + " : " + this.path.getCoords());
+//		System.out.println(this + "'s subpath : " + getSubpath());
 		
 		if(this.prevDestination != this.destination) {
-			String roadName = this.prevDestination + ", " + this.destination;
+			String roadName = "[" + this.prevDestination + ", " + this.destination + "]";
 			this.currentRoad = new Road(roadName, this.prevDestination, this.destination);
 		}
 		
@@ -467,9 +499,6 @@ public class DTNHost implements Comparable<DTNHost> {
 				l.newDestination(this, this.destination, this.speed);
 			}
 		}
-
-//		System.out.println("Prev: " + this.prevDestination + " Current: " + this.destination);
-		
 		return true;
 	}
 
@@ -602,12 +631,16 @@ public class DTNHost implements Comparable<DTNHost> {
 				if(road1.getRoadName().equals(road2.getRoadName())) {
 					this.otherNodesOnRoad.add(con.getOtherNode(this));
 				}
-				else if(isOppositeLane(road2)) {
+				else if(isOppositeLane(road2) && !kunNaglaposNa(con.getOtherNode(this))) {
 					this.oppositeLane.add(con.getOtherNode(this));
 				}
 			}
 		}
 		return this.otherNodesOnRoad;
+	}
+	
+	public void getOppositeLaneCount() {
+		
 	}
 	
 	public boolean kunNaglaposNa(DTNHost opposite) {
@@ -654,32 +687,16 @@ public class DTNHost implements Comparable<DTNHost> {
 		
 		return false;
 	}
-	
-	public double checkFrontDistance(List<DTNHost> sameRoadNodes) {
-		double distance = 0;
-		for(DTNHost other : sameRoadNodes) {
-			if(this.getLocation().distance(destination) > other.getLocation().distance(destination) || 
-					this.getCurrentDestination() != other.getCurrentDestination()) {
-//				if(this.getLocation().distance(other.getLocation()) <= 5.0) {
-//					System.out.println(this + " is farther than " + other);
-//					System.out.println(this + " distance to " + other + " : " + this.getLocation().distance(other.getLocation()));
-//					this.slowDown(other.speed);
-				distance = this.getLocation().distance(other.getLocation());
-				}
-			}
 		
-		return distance;
-	}
-	
 	public double checkFrontDistance(DTNHost frontNode) {
-		double distance = 0;
+		this.frontDistance = 0;
 		if(this.getLocation().distance(destination) > frontNode.getLocation().distance(destination) || 
 				this.getCurrentDestination() != frontNode.getCurrentDestination()) {
-				this.slowDown(frontNode.getCurrentSpeed());
-				distance = this.getLocation().distance(frontNode.getLocation());
+//				this.slowDown(frontNode.getCurrentSpeed());
+				this.frontDistance = this.getLocation().distance(frontNode.getLocation());
 		}
 		
-		return distance;
+		return this.frontDistance;
 	}
 	
 	public DTNHost getFrontNode(List<DTNHost> sameLaneNodes) {
@@ -700,29 +717,7 @@ public class DTNHost implements Comparable<DTNHost> {
 		}
 		return frontNode;
 	}
-	
-	public boolean checkFront(List<DTNHost> sameRoadNodes) {
-		for(DTNHost other : sameRoadNodes) {
-			if(this.getLocation().distance(destination) > other.getLocation().distance(destination) || 
-					this.getCurrentDestination() != other.getCurrentDestination()) {
-//				if(this.getLocation().distance(other.getLocation()) <= 5.0) {
-//					System.out.println(this + " is farther than " + other);
-//					System.out.println(this + " distance to " + other + " : " + this.getLocation().distance(other.getLocation()));
-					if(!oppositeLaneClear()) {
-						System.out.println(this + " is slowing down bcoz mahinay an nauuna and opposite lane is not clear.");
-						this.slowDown(other.speed);
-					}
-					else {
-						
-						System.out.println(this + "'s Opposite lane clear. can overtake.");
-					}
-				return true;
-				}
-			}
-		
-		return false;
-	}
-	
+
 	public boolean shouldSlowDown(double frontSpeed) {
 		if(this.getCurrentSpeed() > frontSpeed && 
 				this.getLocation().distance(this.getFrontNode(getSameLaneNodes()).getLocation()) <= FRONT_DISTANCE)
@@ -731,71 +726,53 @@ public class DTNHost implements Comparable<DTNHost> {
 	}
 	
 	public void slowDown(double tempSpeed) {
-		this.speed = tempSpeed;
-//		System.out.println(this + " Check overtake");
-//		if(canOvertake()) {
-//			overtake();
-//		}
+		if(!this.toString().startsWith("s"))
+			this.speed = tempSpeed;
+	}
+	
+	public void slowDown(DTNHost front) {
+		if(!this.toString().startsWith("s") && this.speed > front.getCurrentSpeed())
+			this.speed = this.speed - (this.speed * 0.25);
+		if(!this.toString().startsWith("s") && this.speed < front.getCurrentSpeed())
+			this.speed = front.speed;
+			
 	}
 	
 	public void overtake() {
-		System.out.println(this + " is Overtaking");
-		this.speed = this.path.getSpeed();
-//		try {
-//			if(this.speed <= this.path.getSpeed()) {
-//				this.speed += this.speed * 0.5;
-//			}
-//		}catch(Exception e) {
-//			
-//		}
-//		while(this.speed <= this.path.getSpeed()) {
-//			this.speed += this.speed * 0.2;
-//		}
+		if(!this.toString().startsWith("s"))
+			try {
+				if(this.speed < this.path.getSpeed())
+					this.speed = this.speed + (this.speed * 0.25);
+				else
+					this.speed = this.path.getSpeed();
+			}catch(Exception e) {
+				
+			}
 	}
 	
 	public boolean canOvertake(List<DTNHost> opposite, DTNHost front) {
-		//himo function pagcheck kun mayda nodes ha opposite lane mylane = (s1, e1), opposite lane = (e1, s1)
-		
-		//if may nauuna nga node ha im ngada hit road, slowdown anay
-		//after slowdown, check if node can overtake, to do-- check:
-		//di pa ini finalized na overtake
-//		if(oppositeLaneClear()) {
-//			return true;
-//		}
-//		else {
-//			if(kunNaglaposNa(oppositeLane.get(0))) {
-//				return true;
-//			}
-//			else {
-//				if(isSafeToOvertake(oppositeLane.get(0))) {
-//					return true;
-//				}
-//			}
-//		}
-//		
 		if(opposite.isEmpty()) {
-			return true;
+			return this.canOvertakeStatus = true;
 		}
 		else {
-//			if(front != null) {
-				if(kunNaglaposNa(opposite.get(0)))
-					return true;
-				else {
-					if(front.getLocation().distance(opposite.get(0).getLocation()) >= SAFE_OVERTAKE_DISTANCE)
-						return true; 
-				}
-//			}
+			if(front == null)
+				return this.canOvertakeStatus = true;
+			else if(kunNaglaposNa(opposite.get(0)))
+				return this.canOvertakeStatus = true;
+			else {
+				if(this.isSafeToOvertake(front, opposite.get(0)))
+					return this.canOvertakeStatus = true; 
+			}
 		}
-		//waray natapo na node/s ha iyo road, if condition pagcheck kun waray incoming node/s from opposite lane  
-			//kun true, overtake
-		//else if mayda, check kun an distance, between han nauuna nga node ha iyo traffic ngan han natapo na node,
-		//is greater than or equal to SAFE_OVERTAKE_DISTANCE
-			//if true, overtake
-		return false;
+		return this.canOvertakeStatus = false;
 	}
 
-	public boolean isSafeToOvertake(DTNHost o) {
-		if(this.getLocation().distance(o.getLocation()) >= SAFE_OVERTAKE_DISTANCE)
+	public boolean canOvertake() {
+		return this.canOvertakeStatus;
+	}
+	
+	public boolean isSafeToOvertake(DTNHost front, DTNHost opposite) {
+		if(this.getLocation().distance(opposite.getLocation()) >= SAFE_OVERTAKE_DISTANCE)
 			return true;
 		return false;
 	}
@@ -810,12 +787,38 @@ public class DTNHost implements Comparable<DTNHost> {
 		return null;
 	}
 
+	public void getRoadsAhead() {
+		this.pathRoads.clear();
+		
+		List<Coord> s = getSubpath();
+		String roadName;
+		if(!s.isEmpty()) {
+			for(int i = 0; i < s.size()-1; i++) {
+				roadName = "[" + s.get(i) + ", " + s.get(i+1) +"]";
+				Road r = new Road(roadName, s.get(i), s.get(i+1));
+				this.pathRoads.add((String) r.getRoadName());
+				this.roads.put(roadName, r);
+			}
+		}
+//		System.out.println(this + "'s road/s ahead: " + this.pathRoads);
+	}
+	
 	public void setRerouteWaypoint(Coord previousDestination) {
 		this.speed = this.path.getSpeed();
 		this.destination = previousDestination;
 	}
 	
 	public void setReroutePath(Path p) {
+		System.out.println(this + " is now going to prev destination: " + this.getPreviousDestination());
+		setRerouteWaypoint(this.getPreviousDestination());
 		this.path = p;
+	}
+	
+	public void getTotalTravelTime() {
+		
+	}
+	
+	public void updateTravelTime(double travelTime) {
+		
 	}
 }

@@ -62,8 +62,8 @@ public class MapGraphic extends PlayFieldGraphic {
 				this.endpoints.add(c2);
 				
 				//pagdisplay han coordinates han tanan na road segments han whole map 
-//				g2.drawString(c.toString(), scale(c.getX()), scale(c.getY()));
-//				g2.drawString(c2.toString(), scale(c2.getX()), scale(c2.getY()));
+				g2.drawString(c.toString(), scale(c.getX()), scale(c.getY()));
+				g2.drawString(c2.toString(), scale(c2.getX()), scale(c2.getY()));
 				//end
 				
 				//original function pagdraw han map

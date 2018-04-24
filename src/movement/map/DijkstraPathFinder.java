@@ -14,6 +14,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 
+import core.Coord;
 import movement.Path;
 
 /**
@@ -63,6 +64,10 @@ public class DijkstraPathFinder {
 		// set distance to source 0 and initialize unvisited queue
 		this.distances.put(node, 0);
 		this.unvisited.add(node);
+		System.out.println("initWith() this.unvisited: " + this.unvisited);
+		System.out.println("initWith() this.visited: " + this.visited);
+		System.out.println("initWith() this.prevNodes: " + this.prevNodes);
+		System.out.println("initWith() this.distances: " + this.distances);
 	}
 
 	/**
@@ -75,22 +80,31 @@ public class DijkstraPathFinder {
 	public List<MapNode> getShortestPath(MapNode from, MapNode to) {
 		List<MapNode> path = new LinkedList<MapNode>();
 
+		System.out.println("in getShortestPath()");
 		if (from.compareTo(to) == 0) { // source and destination are the same
 			path.add(from); // return a list containing only source node
 			return path;
 		}
 
 		initWith(from);
+		System.out.println("initWith(" + from + ")");
 		MapNode node = null;
 
+		
 		// always take the node with shortest distance
 		while ((node = unvisited.poll()) != null) {
+			System.out.println("node = unvisited.poll(): " + node);
+			
 			if (node == to) {
+				System.out.println("node: " + node + " , to: " + to);
 				break; // we found the destination -> no need to search further
 			}
 
+			System.out.println("visited: " + visited);
 			visited.add(node); // mark the node as visited
+			System.out.println("visited.add(" + node + "): " + visited);
 			relax(node); // add/update neighbor nodes' distances
+			System.out.println("relax(" + node + ")");
 		}
 
 		// now we either have the path or such path wasn't available
@@ -154,9 +168,15 @@ public class DijkstraPathFinder {
 		return from.getLocation().distance(to.getLocation());
 	}
 	
-	public List<MapNode> getAlternativePath(MapNode from, MapNode to, Path currentPath, double speed) {
+	public List<MapNode> getAlternativePath(MapNode from, MapNode to, Coord currentLocation, Path currentPath, double speed) {
 		List<MapNode> path = new LinkedList<MapNode>();
-
+		
+		//distance speed time variables
+		double d, t, s;
+		d = currentLocation.distance(to.getLocation());
+		s = speed;
+		t= 0;
+		
 		if (from.compareTo(to) == 0) { // source and destination are the same
 			path.add(from); // return a list containing only source node
 			return path;

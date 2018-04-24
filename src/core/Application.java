@@ -4,7 +4,7 @@
  */
 package core;
 
-import java.awt.geom.Line2D;
+import core.Road;
 import java.util.List;
 
 import applications.TrafficApp;
@@ -120,11 +120,12 @@ public abstract class Application {
 	 * @param trafficApp 
 	 * @param average 
 	 * @param host		The host which where the app is running.
+	 * @param Road 
 	 */
-	public void sendEventToListeners(String event, Object params,
-			double time, double average, String status, TrafficApp trafficApp, DTNHost host) {
+	public void sendEventToListeners(String event, Object params, String basis, 
+			double time, double averageSpeed, String trafficCondition, TrafficApp trafficApp, DTNHost host) {
 		for (ApplicationListener al : this.aListeners) {
-			al.gotEvent(event, (Line2D) params, time, average, status, this, host);
+			al.gotEvent(event, (Road) params, basis, time, averageSpeed, trafficCondition, this, host);
 		}
 	}
 	

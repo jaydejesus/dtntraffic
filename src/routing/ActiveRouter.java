@@ -228,9 +228,9 @@ public abstract class ActiveRouter extends MessageRouter {
 	 * does not fit into buffer
 	 */
 	protected int checkReceiving(Message m, DTNHost from) {
-		if (isTransferring()) {
-			return TRY_LATER_BUSY; // only one connection at a time
-		}
+//		if (isTransferring()) {
+//			return TRY_LATER_BUSY; // only one connection at a time
+//		}
 
 		if ( hasMessage(m.getId()) || isDeliveredMessage(m) ||
 				super.isBlacklistedMessage(m.getId())) {
@@ -377,6 +377,8 @@ public abstract class ActiveRouter extends MessageRouter {
 	 */
 	protected Tuple<Message, Connection> tryMessagesForConnected(
 			List<Tuple<Message, Connection>> tuples) {
+		Tuple<Message, Connection> tewple = null;
+		
 		if (tuples.size() == 0) {
 			return null;
 		}
@@ -385,11 +387,12 @@ public abstract class ActiveRouter extends MessageRouter {
 			Message m = t.getKey();
 			Connection con = t.getValue();
 			if (startTransfer(m, con) == RCV_OK) {
-				return t;
+				tewple = t;
+//				return t; //"gintanggal ini, kay after magsend ha usa nastop na hiya dayon after han pagreturn" - (Estopa, 2018) 
 			}
 		}
 
-		return null;
+		return tewple;
 	}
 
 	 /**
@@ -431,9 +434,9 @@ public abstract class ActiveRouter extends MessageRouter {
 		for (int i=0, n=connections.size(); i<n; i++) {
 			Connection con = connections.get(i);
 			Message started = tryAllMessages(con, messages);
-			if (started != null) {
-				return con;
-			}
+//			if (started != null) {
+//				return con;
+//			}
 		}
 
 		return null;
@@ -524,9 +527,9 @@ public abstract class ActiveRouter extends MessageRouter {
 	 * @return true if this router is transferring something
 	 */
 	public boolean isTransferring() {
-		if (this.sendingConnections.size() > 0) {
-			return true; // sending something
-		}
+//		if (this.sendingConnections.size() > 0) {
+//			return true; // sending something
+//		}
 
 		List<Connection> connections = getConnections();
 
@@ -534,12 +537,12 @@ public abstract class ActiveRouter extends MessageRouter {
 			return false; // not connected
 		}
 
-		for (int i=0, n=connections.size(); i<n; i++) {
-			Connection con = connections.get(i);
-			if (!con.isReadyForTransfer()) {
-				return true;	// a connection isn't ready for new transfer
-			}
-		}
+//		for (int i=0, n=connections.size(); i<n; i++) {
+//			Connection con = connections.get(i);
+//			if (!con.isReadyForTransfer()) {
+//				return true;	// a connection isn't ready for new transfer
+//			}
+//		}
 
 		return false;
 	}
