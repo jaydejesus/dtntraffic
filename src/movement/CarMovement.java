@@ -60,9 +60,9 @@ public class CarMovement extends MapBasedMovement implements
 		MapNode toNode = getMap().getNodeByCoord(to);
 
 		List<MapNode> nodePath = pathFinder.getShortestPath(fromNode, toNode);
-
 		for (MapNode node : nodePath) { // create a Path from the shortest path
 			path.addWaypoint(node.getLocation());
+			System.out.println("added waypoint");
 		}
 
 		lastMapNode = toNode;

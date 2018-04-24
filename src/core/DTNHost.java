@@ -11,7 +11,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
-import movement.CarMovement;
 import movement.MapBasedMovement;
 import movement.MovementModel;
 import movement.Path;
@@ -413,6 +412,7 @@ public class DTNHost implements Comparable<DTNHost> {
 		}
 		if (this.destination == null) {
 			if (!setNextWaypoint()) {
+				System.out.println("DTNHost-null destination...->setNextWaypoint");
 				return;
 			}
 		}

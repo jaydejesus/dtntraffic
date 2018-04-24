@@ -51,7 +51,6 @@ public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 		MapNode to = pois.selectDestination();
 
 		List<MapNode> nodePath = pathFinder.getShortestPath(lastMapNode, to);
-
 		// this assertion should never fire if the map is checked in read phase
 		assert nodePath.size() > 0 : "No path from " + lastMapNode + " to " +
 			to + ". The simulation map isn't fully connected";
@@ -62,6 +61,7 @@ public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 
 		lastMapNode = to;
 
+		System.out.println("ShortestPathMapBasedPath: " + p.getCoords());
 		return p;
 	}
 

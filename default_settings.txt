@@ -7,7 +7,7 @@ Scenario.name = Test-5-nodes
 Scenario.simulateConnections = true
 Scenario.updateInterval = 1.0
 # 43200s == 12h
-Scenario.endTime = 1000
+Scenario.endTime = 5000
 Scenario.nrofHostGroups = 3
 
 
@@ -59,12 +59,12 @@ Group.sendQueueMode = 2
 
 # Walking speeds
 Group1.speed = 8.0, 11.0
-Group1.nrofHosts = 1
+Group1.nrofHosts = 0
 Group1.groupID = n
 Group1.pois = 2, 0.01
 
 Group2.speed = 0.3, 0.5
-Group2.nrofHosts = 0
+Group2.nrofHosts = 1
 Group2.groupID = s
 Group2.pois = 2, 0.5
 
