@@ -22,7 +22,7 @@ import routing.util.RoutingInfo;
  */
 public class DTNHost implements Comparable<DTNHost> {
 	private static final double SAFE_OVERTAKE_DISTANCE = 100;
-	private static final double FRONT_DISTANCE = 5;
+	private static final double FRONT_DISTANCE = 8;
 	private static int nextAddress = 0;
 	private int address;
 
@@ -809,11 +809,16 @@ public class DTNHost implements Comparable<DTNHost> {
 	}
 	
 	public void reroute(Path p) {
-		System.out.println("================rerouting to path: " + p);
+		System.out.println(this + " is now going to prev destination: " + p.getCoords().get(0));
+		System.out.println("Setting reroute path of host: " + p);
+		System.out.println("Subpath: " + this.getSubpath());
+		this.path = p;
+		this.speed = p.getSpeed();
+		this.destination = p.getCoords().get(0);
 	}
 	
 	public void setReroutePath(Path p) {
-		System.out.println(this + " is now going to prev destination: " + path.getCoords().get(0));
+		System.out.println(this + " is now going to prev destination: " + p.getCoords().get(0));
 		System.out.println("Setting reroute path of host: " + p);
 		this.path = p;
 		this.speed = p.getSpeed();

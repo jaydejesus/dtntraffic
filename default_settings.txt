@@ -3,7 +3,7 @@
 #
 
 ## Scenario settings
-Scenario.name = Test-5-nodes
+Scenario.name = DTN Traffic Monitoring
 Scenario.simulateConnections = true
 Scenario.updateInterval = 1.0
 # 43200s == 12h
@@ -59,17 +59,17 @@ Group.sendQueueMode = 2
 
 # Walking speeds
 Group1.speed = 8.0, 11.0
-Group1.nrofHosts = 100
+Group1.nrofHosts = 500
 Group1.groupID = n
-Group1.pois = 2, 0.01
+Group1.pois = 2, 0.5
 
 Group2.speed = 0.3, 0.5
-Group2.nrofHosts = 150
+Group2.nrofHosts = 250
 Group2.groupID = s
 Group2.pois = 2, 0.5
 
 Group3.speed = 8.0, 11.0
-Group3.nrofHosts = 250
+Group3.nrofHosts = 500
 Group3.groupID = m
 Group3.pois = 2, 0.5
 
@@ -137,7 +137,7 @@ Events.nrof = 1
 ## Reports - all report names have to be valid report classes
 # how many reports to load
 Report.nrofReports = 1
-Report.reportDir = reports/Test-5-nodes
+Report.reportDir = reports/DTN Traffic Monitoring
 # Report classes to load
 Report.report1 = MessageStatsReport
 #Report.report2 = TrafficAppReporter

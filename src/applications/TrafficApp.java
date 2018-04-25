@@ -308,7 +308,7 @@ public class TrafficApp extends Application{
 				this.currentRoadCondition = FREE_FLOW;
 		}
 		else if(ave_speed <= 0.5) {
-			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(LOW))
+			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(HIGH))
 				this.currentRoadCondition = TRAFFIC_JAM;
 			else if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(MEDIUM))
 				this.currentRoadCondition = MEDIUM_FLOW;
@@ -429,9 +429,15 @@ public class TrafficApp extends Application{
 	private List<DTNHost> getSameLaneNodes() {
 		return this.sameLaneNodes;
 	}
-
+//reroute path must be based on data/msgs received from other nodes
+//subpath (currentDest to endOfPath) must be added to reroute path(prevDest to currentDest)
+//an reroute path dre pa fastest.
+//kailangan an slowdown asya na para an possible movement han node sakto la based ha iya speed(na mahinay)
+//kailangan an basis han fastest path kay an average road speed han mga roads na iya aagian
+	
 	public Path getAlternativePath(Coord start, Coord destination, Path path, DTNHost host, double speed) {
 		this.alternativePathFinder = new DijkstraPathFinder(host.getMovementModel().getOkMapNodeTypes2());
+		System.out.println("okmapnodes: " + host.getMovementModel().getOkMapNodeTypes2());
 		Path p = new Path(path.getSpeed());
 		MapNode s = host.getMovementModel().getMap().getNodeByCoord(start);
 		MapNode dest = host.getMovementModel().getMap().getNodeByCoord(destination);
@@ -444,9 +450,9 @@ public class TrafficApp extends Application{
 		}
 
 		System.out.println("in app: " + p);
-		System.out.println("called host reroute");
+		System.out.println("called host reroute for " + host);
 		host.reroute(p);
-		System.out.println("done calling host reroute");
+		System.out.println("done calling host reroute=================================");
 		return p;
 	}
 
