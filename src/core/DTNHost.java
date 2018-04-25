@@ -808,10 +808,16 @@ public class DTNHost implements Comparable<DTNHost> {
 		this.destination = previousDestination;
 	}
 	
+	public void reroute(Path p) {
+		System.out.println("================rerouting to path: " + p);
+	}
+	
 	public void setReroutePath(Path p) {
-		System.out.println(this + " is now going to prev destination: " + this.getPreviousDestination());
-		setRerouteWaypoint(this.getPreviousDestination());
+		System.out.println(this + " is now going to prev destination: " + path.getCoords().get(0));
+		System.out.println("Setting reroute path of host: " + p);
 		this.path = p;
+		this.speed = p.getSpeed();
+		this.destination = p.getCoords().get(0);
 	}
 	
 	public void getTotalTravelTime() {

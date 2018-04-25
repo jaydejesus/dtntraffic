@@ -1,9 +1,9 @@
 Message stats for scenario Test-5-nodes
-sim_time: 0.0000
-created: 0
-started: 0
-relayed: 0
-aborted: 0
+sim_time: 15.0000
+created: 936
+started: 13224
+relayed: 12840
+aborted: 384
 dropped: 0
 removed: 0
 delivered: 0

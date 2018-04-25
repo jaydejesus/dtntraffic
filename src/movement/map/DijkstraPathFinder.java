@@ -80,14 +80,14 @@ public class DijkstraPathFinder {
 	public List<MapNode> getShortestPath(MapNode from, MapNode to) {
 		List<MapNode> path = new LinkedList<MapNode>();
 
-		System.out.println("getShortestPath() from: " + from + " to: " + to);
+//		System.out.println("getShortestPath() from: " + from + " to: " + to);
 		if (from.compareTo(to) == 0) { // source and destination are the same
 			path.add(from); // return a list containing only source node
 			return path;
 		}
 
 		initWith(from);
-		System.out.println("initWith(" + from + ")");
+//		System.out.println("initWith(" + from + ")");
 		MapNode node = null;
 
 		
@@ -172,7 +172,7 @@ public class DijkstraPathFinder {
 	
 	public List<MapNode> getAlternativePath(MapNode from, MapNode to, Coord currentLocation, Path currentPath, double speed) {
 		List<MapNode> path = new LinkedList<MapNode>();
-		
+		System.out.println("Here in altpath");
 		//distance speed time variables
 		double d, t, s;
 		d = currentLocation.distance(to.getLocation());
@@ -194,7 +194,7 @@ public class DijkstraPathFinder {
 			}
 
 			visited.add(node); // mark the node as visited
-			relaxV2(node, speed); // add/update neighbor nodes' distances
+			relaxV2(node, to, speed, currentPath.getSpeed()); // add/update neighbor nodes' distances
 		}
 
 		// now we either have the path or such path wasn't available
@@ -209,10 +209,12 @@ public class DijkstraPathFinder {
 			path.add(0, from); // finally put the source node to first node
 		}
 
+//		System.out.println("Current path: " + currentPath) ;
+//		System.out.println("reroute path: " + path);
 		return path;
 	}
 	
-	private void relaxV2(MapNode node, double speed) {
+	private void relaxV2(MapNode node, MapNode nono, double speedNono, double speedReroute) {
 		double nodeDist = distances.get(node);
 		
 		for (MapNode n : node.getNeighbors()) {
@@ -225,7 +227,7 @@ public class DijkstraPathFinder {
 			}
 
 			// n node's distance from path's source node
-			double nDist = nodeDist + getDistance(node, n);
+			double nDist = nodeDist + getTravelTime(node, n, nono, speedNono, speedReroute);
 
 			if (distances.get(n) > nDist) { // stored distance > found dist?
 				prevNodes.put(n, node);
@@ -235,8 +237,10 @@ public class DijkstraPathFinder {
 //		System.out.println("RELAX: " + node + " ===== neighbors: " + node.getNeighbors() + " prevNodes: " + prevNodes);
 	}
 	
-	private double getTravelTime(MapNode from, MapNode to, double speed) {
-		return (from.getLocation().distance(to.getLocation()))/speed;
+	private double getTravelTime(MapNode from, MapNode to, MapNode nono, double speedNono, double speedReroute) {
+		if(to.equals(nono))
+			return (from.getLocation().distance(to.getLocation()))/speedNono;
+		return (from.getLocation().distance(to.getLocation()))/speedReroute;
 	}
 	
 	/**

@@ -176,6 +176,9 @@ public class MapBasedMovement extends MovementModel implements SwitchableMovemen
 	protected int[] getOkMapNodeTypes() {
 		return okMapNodeTypes;
 	}
+	public int[] getOkMapNodeTypes2() {
+		return okMapNodeTypes;
+	}
 
 	@Override
 	public Path getPath() {

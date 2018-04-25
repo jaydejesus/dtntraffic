@@ -180,7 +180,7 @@ public class TrafficApp extends Application{
 					classifyMsgs(msgsHash, host);
 					if(getTrafficCondition(this.neededMsgs, host) == TRAFFIC_JAM && !host.toString().startsWith("s")) {
 						System.out.println(host + " MUST REROUTE!!!!!");
-						getAlternativePath(host.getPreviousDestination(), host.getCurrentDestination(), host.getPath(), host);
+						getAlternativePath(host.getPreviousDestination(), host.getCurrentDestination(), host.getPath(), host, host.getCurrentSpeed());
 					}
 					if(this.neededMsgs.size() < 1)
 						basis = " based on own speed ";
@@ -214,8 +214,8 @@ public class TrafficApp extends Application{
 	}
 	
 	private double getAverageRoadSpeed(List<Message> msgs, DTNHost host) {
-		this.averageRoadSpeed = 0;
-		int nrofhosts = 0;
+		this.averageRoadSpeed = host.getCurrentSpeed();
+		int nrofhosts = 1;
 
 //		System.out.println(host + " is commputing ave spd of " + msgs.size() + " same lane nodes");
 		
@@ -308,7 +308,7 @@ public class TrafficApp extends Application{
 				this.currentRoadCondition = FREE_FLOW;
 		}
 		else if(ave_speed <= 0.5) {
-			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(HIGH))
+			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(LOW))
 				this.currentRoadCondition = TRAFFIC_JAM;
 			else if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(MEDIUM))
 				this.currentRoadCondition = MEDIUM_FLOW;
@@ -323,8 +323,8 @@ public class TrafficApp extends Application{
 				this.currentRoadCondition = MEDIUM_FLOW;
 		}
 		
-		System.out.println(host + "road cap: " + getRoadCapacity(host.getCurrentRoad()) + " averageSpeed: " + ave_speed 
-				+ " density: " + msgs.size() + " " + getRoadDensity(host.getCurrentRoad(), msgs.size()) + " " + this.currentRoadCondition);
+//		System.out.println(host + "road cap: " + getRoadCapacity(host.getCurrentRoad()) + " averageSpeed: " + ave_speed 
+//				+ " density: " + msgs.size() + " " + getRoadDensity(host.getCurrentRoad(), msgs.size()) + " " + this.currentRoadCondition);
 		
 //		//if not high speed
 //		else {
@@ -430,15 +430,23 @@ public class TrafficApp extends Application{
 		return this.sameLaneNodes;
 	}
 
-	public Path getAlternativePath(Coord start, Coord destination, Path path, DTNHost host) {
-		Path p = null;
+	public Path getAlternativePath(Coord start, Coord destination, Path path, DTNHost host, double speed) {
+		this.alternativePathFinder = new DijkstraPathFinder(host.getMovementModel().getOkMapNodeTypes2());
+		Path p = new Path(path.getSpeed());
 		MapNode s = host.getMovementModel().getMap().getNodeByCoord(start);
 		MapNode dest = host.getMovementModel().getMap().getNodeByCoord(destination);
-		
-		List<MapNode> altMapNodes = this.alternativePathFinder.getShortestPath(s, dest);
-		System.out.println("Rerouting -- starting from: " + start + " to destination: " + destination);
-		
-		host.setReroutePath(p);
+		List<MapNode> altMapNodes = new ArrayList<MapNode>();
+		altMapNodes = this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed());
+		System.out.println("re: path= " + this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed()));
+//		System.out.println("Getting reroute path");
+		for(MapNode n : altMapNodes) {
+			p.addWaypoint(n.getLocation());
+		}
+
+		System.out.println("in app: " + p);
+		System.out.println("called host reroute");
+		host.reroute(p);
+		System.out.println("done calling host reroute");
 		return p;
 	}
 

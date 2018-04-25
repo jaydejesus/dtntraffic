@@ -59,17 +59,17 @@ Group.sendQueueMode = 2
 
 # Walking speeds
 Group1.speed = 8.0, 11.0
-Group1.nrofHosts = 0
+Group1.nrofHosts = 100
 Group1.groupID = n
 Group1.pois = 2, 0.01
 
 Group2.speed = 0.3, 0.5
-Group2.nrofHosts = 1
+Group2.nrofHosts = 150
 Group2.groupID = s
 Group2.pois = 2, 0.5
 
 Group3.speed = 8.0, 11.0
-Group3.nrofHosts = 0
+Group3.nrofHosts = 250
 Group3.groupID = m
 Group3.pois = 2, 0.5
 

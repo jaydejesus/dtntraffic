@@ -61,7 +61,7 @@ public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 
 		lastMapNode = to;
 
-		System.out.println("ShortestPathMapBasedPath: " + p.getCoords());
+//		System.out.println("ShortestPathMapBasedPath: " + p.getCoords());
 		return p;
 	}
 
