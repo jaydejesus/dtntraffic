@@ -10,7 +10,7 @@ import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
-import movement.map.DijkstraPathFinder;
+import movement.map.DijkstraPathFinder_back_up;
 import movement.map.MapNode;
 import movement.map.SimMap;
 import core.Coord;
@@ -38,7 +38,7 @@ public class HomeActivityMovement extends MapBasedMovement
 	public static final String STD_FOR_TIME_DIFF_SETTING = "timeDiffSTD";
 
 	private int mode;
-	private DijkstraPathFinder pathFinder;
+	private DijkstraPathFinder_back_up pathFinder;
 
 	private int distance;
 
@@ -57,7 +57,7 @@ public class HomeActivityMovement extends MapBasedMovement
 	public HomeActivityMovement(Settings settings) {
 		super(settings);
 		distance = 100;
-		pathFinder = new DijkstraPathFinder(null);
+		pathFinder = new DijkstraPathFinder_back_up(null);
 		mode = WALKING_HOME_MODE;
 
 		String homeLocationsFile = null;

@@ -21,7 +21,8 @@ import core.World;
 
 import movement.map.SimMap;
 import movement.Path;
-import movement.map.DijkstraPathFinder;
+import movement.map.DijkstraPathFinder_back_up;
+import movement.map.FastestPathFinder;
 import movement.map.MapNode;
 
 import java.util.ArrayList;
@@ -96,7 +97,7 @@ public class TrafficApp extends Application{
 		
 	private List<DTNHost> sameLaneNodes;
 	private List<Message> frontNodesMsgs;
-	private DijkstraPathFinder alternativePathFinder;
+	private FastestPathFinder alternativePathFinder;
 	private boolean limiter = false;
 	private int roadCapacity;
 	private String roadDensity = "";
@@ -308,7 +309,7 @@ public class TrafficApp extends Application{
 				this.currentRoadCondition = FREE_FLOW;
 		}
 		else if(ave_speed <= 0.5) {
-			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(HIGH))
+			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(LOW))
 				this.currentRoadCondition = TRAFFIC_JAM;
 			else if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(MEDIUM))
 				this.currentRoadCondition = MEDIUM_FLOW;
@@ -436,20 +437,20 @@ public class TrafficApp extends Application{
 //kailangan an basis han fastest path kay an average road speed han mga roads na iya aagian
 	
 	public Path getAlternativePath(Coord start, Coord destination, Path path, DTNHost host, double speed) {
-		this.alternativePathFinder = new DijkstraPathFinder(host.getMovementModel().getOkMapNodeTypes2());
-		System.out.println("okmapnodes: " + host.getMovementModel().getOkMapNodeTypes2());
+		this.alternativePathFinder = new FastestPathFinder(host.getMovementModel().getOkMapNodeTypes2());
+//		System.out.println("okmapnodes: " + host.getMovementModel().getOkMapNodeTypes2());
 		Path p = new Path(path.getSpeed());
 		MapNode s = host.getMovementModel().getMap().getNodeByCoord(start);
 		MapNode dest = host.getMovementModel().getMap().getNodeByCoord(destination);
 		List<MapNode> altMapNodes = new ArrayList<MapNode>();
 		altMapNodes = this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed());
-		System.out.println("re: path= " + this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed()));
+//		System.out.println("re: path= " + this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed()));
 //		System.out.println("Getting reroute path");
 		for(MapNode n : altMapNodes) {
 			p.addWaypoint(n.getLocation());
 		}
 
-		System.out.println("in app: " + p);
+//		System.out.println("in app: " + p);
 		System.out.println("called host reroute for " + host);
 		host.reroute(p);
 		System.out.println("done calling host reroute=================================");

@@ -10,7 +10,7 @@ import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 
-import movement.map.DijkstraPathFinder;
+import movement.map.DijkstraPathFinder_back_up;
 import movement.map.MapNode;
 import movement.map.SimMap;
 import core.Coord;
@@ -48,7 +48,7 @@ public class EveningActivityMovement extends MapBasedMovement
 
 	private int mode;
 	private boolean ready;
-	private DijkstraPathFinder pathFinder;
+	private DijkstraPathFinder_back_up pathFinder;
 
 	private Coord lastWaypoint;
 	private Coord startAtLocation;
@@ -72,7 +72,7 @@ public class EveningActivityMovement extends MapBasedMovement
 	public EveningActivityMovement(Settings settings) {
 		super(settings);
 		super.backAllowed = false;
-		pathFinder = new DijkstraPathFinder(null);
+		pathFinder = new DijkstraPathFinder_back_up(null);
 		mode = WALKING_TO_MEETING_SPOT_MODE;
 
 		nrOfMeetingSpots = settings.getInt(NR_OF_MEETING_SPOTS_SETTING);

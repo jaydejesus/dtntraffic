@@ -232,7 +232,7 @@ public class MapBasedMovement extends MovementModel implements SwitchableMovemen
 
 		lastMapNode = curNode;
 
-		System.out.println("MapBasedPath: " + p.getCoords());
+//		System.out.println("MapBasedPath: " + p.getCoords());
 		return p;
 	}
 

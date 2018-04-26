@@ -7,7 +7,7 @@ package movement;
 import java.util.List;
 
 import core.SettingsError;
-import movement.map.DijkstraPathFinder;
+import movement.map.DijkstraPathFinder_back_up;
 import movement.map.MapNode;
 import movement.map.MapRoute;
 import core.Coord;
@@ -16,7 +16,7 @@ import core.Settings;
 /**
  * Map based movement model that uses predetermined paths within the map area.
  * Nodes using this model (can) stop on every route waypoint and find their
- * way to next waypoint using {@link DijkstraPathFinder}. There can be
+ * way to next waypoint using {@link DijkstraPathFinder_back_up}. There can be
  * different type of routes; see {@link #ROUTE_TYPE_S}.
  */
 public class MapRouteMovement extends MapBasedMovement implements
@@ -38,7 +38,7 @@ public class MapRouteMovement extends MapBasedMovement implements
 	public static final String ROUTE_FIRST_STOP_S = "routeFirstStop";
 
 	/** the Dijkstra shortest path finder */
-	private DijkstraPathFinder pathFinder;
+	private DijkstraPathFinder_back_up pathFinder;
 
 	/** Prototype's reference to all routes read for the group */
 	private List<MapRoute> allRoutes = null;
@@ -60,7 +60,7 @@ public class MapRouteMovement extends MapBasedMovement implements
 		int type = settings.getInt(ROUTE_TYPE_S);
 		allRoutes = MapRoute.readRoutes(fileName, type, getMap());
 		nextRouteIndex = 0;
-		pathFinder = new DijkstraPathFinder(getOkMapNodeTypes());
+		pathFinder = new DijkstraPathFinder_back_up(getOkMapNodeTypes());
 		this.route = this.allRoutes.get(this.nextRouteIndex).replicate();
 		if (this.nextRouteIndex >= this.allRoutes.size()) {
 			this.nextRouteIndex = 0;

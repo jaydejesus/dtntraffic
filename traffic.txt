@@ -16,6 +16,6 @@ Group.application1 = trafficApp
 
 # Add report for Ping app
 Report.nrofReports = 2
-Report.report1 = MessageStatsReport
+Report.report1 = EventLogReport
 Report.report2 = TrafficAppReporter
 	

@@ -7,7 +7,7 @@ Scenario.name = DTN Traffic Monitoring
 Scenario.simulateConnections = true
 Scenario.updateInterval = 1.0
 # 43200s == 12h
-Scenario.endTime = 5000
+Scenario.endTime = 10000
 Scenario.nrofHostGroups = 3
 
 
@@ -47,7 +47,7 @@ PointsOfInterest.poiFile1 = data/CentralPOIs.wkt
 PointsOfInterest.poiFile2 = data/newsites.wkt
 
 # Common settings for all groups
-Group.movementModel = ShortestPathMapBasedMovement
+Group.movementModel = CarMovement
 Group.router = EpidemicRouter
 Group.bufferSize = 500M
 # All nodes have the Wifi Direct interface
@@ -59,19 +59,19 @@ Group.sendQueueMode = 2
 
 # Walking speeds
 Group1.speed = 8.0, 11.0
-Group1.nrofHosts = 500
+Group1.nrofHosts =150
 Group1.groupID = n
-Group1.pois = 2, 0.5
+#Group1.pois = 2, 0.5
 
 Group2.speed = 0.3, 0.5
-Group2.nrofHosts = 250
+Group2.nrofHosts = 100
 Group2.groupID = s
-Group2.pois = 2, 0.5
+#Group2.pois = 2, 0.5
 
 Group3.speed = 8.0, 11.0
-Group3.nrofHosts = 500
+Group3.nrofHosts = 150
 Group3.groupID = m
-Group3.pois = 2, 0.5
+#Group3.pois = 2, 0.5
 
 Group4.speed = 8.0, 11.0
 Group4.nrofHosts = 0
@@ -139,7 +139,7 @@ Events.nrof = 1
 Report.nrofReports = 1
 Report.reportDir = reports/DTN Traffic Monitoring
 # Report classes to load
-Report.report1 = MessageStatsReport
+Report.report1 = EventLogReport
 #Report.report2 = TrafficAppReporter
 #Report.report3 = PingAppReporter
 

@@ -6,7 +6,7 @@ package movement;
 
 import java.util.List;
 
-import movement.map.DijkstraPathFinder;
+import movement.map.DijkstraPathFinder_back_up;
 import movement.map.MapNode;
 import movement.map.PointsOfInterest;
 import core.Settings;
@@ -18,7 +18,7 @@ import core.Settings;
 public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 	SwitchableMovement {
 	/** the Dijkstra shortest path finder */
-	private DijkstraPathFinder pathFinder;
+	private DijkstraPathFinder_back_up pathFinder;
 
 	/** Points Of Interest handler */
 	private PointsOfInterest pois;
@@ -29,7 +29,7 @@ public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 	 */
 	public ShortestPathMapBasedMovement(Settings settings) {
 		super(settings);
-		this.pathFinder = new DijkstraPathFinder(getOkMapNodeTypes());
+		this.pathFinder = new DijkstraPathFinder_back_up(getOkMapNodeTypes());
 		this.pois = new PointsOfInterest(getMap(), getOkMapNodeTypes(),
 				settings, rng);
 	}

@@ -7,7 +7,7 @@ package movement;
 import java.util.List;
 import java.util.Random;
 
-import movement.map.DijkstraPathFinder;
+import movement.map.DijkstraPathFinder_back_up;
 import movement.map.MapNode;
 import movement.map.SimMap;
 import core.Coord;
@@ -45,7 +45,7 @@ public class BusTravellerMovement extends MapBasedMovement implements
 	private ContinueBusTripDecider cbtd;
 	private double[] probabilities;
 	private double probTakeOtherBus;
-	private DijkstraPathFinder pathFinder;
+	private DijkstraPathFinder_back_up pathFinder;
 
 	private Coord startBusStop;
 	private Coord endBusStop;
@@ -73,7 +73,7 @@ public class BusTravellerMovement extends MapBasedMovement implements
 			probTakeOtherBus = settings.getDouble(PROBABILITY_TAKE_OTHER_BUS);
 		}
 		cbtd = new ContinueBusTripDecider(rng, probabilities);
-		pathFinder = new DijkstraPathFinder(null);
+		pathFinder = new DijkstraPathFinder_back_up(null);
 		takeBus = true;
 	}
 

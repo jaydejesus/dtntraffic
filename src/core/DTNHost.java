@@ -21,8 +21,8 @@ import routing.util.RoutingInfo;
  * A DTN capable host.
  */
 public class DTNHost implements Comparable<DTNHost> {
-	private static final double SAFE_OVERTAKE_DISTANCE = 100;
-	private static final double FRONT_DISTANCE = 8;
+	private static final double SAFE_OVERTAKE_DISTANCE = 50;
+	private static final double FRONT_DISTANCE = 5;
 	private static int nextAddress = 0;
 	private int address;
 
@@ -49,6 +49,7 @@ public class DTNHost implements Comparable<DTNHost> {
 	private List<String> pathRoads; 
 	private HashMap<String, Road> roads;
 	private boolean canOvertakeStatus;
+	private int pathIndex;
 
 	private double frontDistance;
 	static {
@@ -428,14 +429,14 @@ public class DTNHost implements Comparable<DTNHost> {
 			
 			double temp = frontDistance - (frontDistance * 0.75);	
 			posMov = temp;
-			if(temp <= 20.0 && !this.canOvertake(getOppositeLaneNodes(), frontNode))
+			if(temp <= 10.0 && !this.canOvertake(getOppositeLaneNodes(), frontNode))
 				this.slowDown(frontNode);
 			//check if host can overtake overtake frontNode
 			else if(this.canOvertake(getOppositeLaneNodes(), frontNode) && this.getLocation().distance(frontNode.getLocation()) < FRONT_DISTANCE) {
 				overtake();
 				posMov = timeIncrement * speed;
 			}
-			possibleMovement = posMov;
+			possibleMovement = timeIncrement * speed;
 		}
 		else {
 			if(frontNode == null && this.canOvertake(getOppositeLaneNodes(), frontNode))
@@ -483,6 +484,7 @@ public class DTNHost implements Comparable<DTNHost> {
 		this.prevDestination = this.destination;		
 		this.destination = path.getNextWaypoint();
 		this.subpath = this.path.getSubpath(path.getWaypointIndex(), path.getPathSize());
+		this.pathIndex = this.path.getWaypointIndex();
 		getRoadsAhead();
 //		System.out.println(this + " : " + this.path.getCoords());
 //		System.out.println(this + "'s subpath : " + getSubpath());
@@ -811,8 +813,14 @@ public class DTNHost implements Comparable<DTNHost> {
 	public void reroute(Path p) {
 		System.out.println(this + " is now going to prev destination: " + p.getCoords().get(0));
 		System.out.println("Setting reroute path of host: " + p);
-		System.out.println("Subpath: " + this.getSubpath());
+//		System.out.println("Subpath: " + this.getSubpath());
+		System.out.println("Previous path: " + this.path);
+		for(int i = this.pathIndex; i < this.path.getCoords().size(); i++) {
+			p.addWaypoint(this.path.getCoords().get(i));
+		}
+		System.out.println("rerouted path: " + p);
 		this.path = p;
+		
 		this.speed = p.getSpeed();
 		this.destination = p.getCoords().get(0);
 	}

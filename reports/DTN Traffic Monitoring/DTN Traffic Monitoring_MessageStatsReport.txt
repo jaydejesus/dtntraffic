@@ -1,9 +1,9 @@
 Message stats for scenario DTN Traffic Monitoring
-sim_time: 39.0000
-created: 11623
-started: 380954
-relayed: 371885
-aborted: 9069
+sim_time: 10.0000
+created: 924
+started: 16891
+relayed: 13127
+aborted: 395
 dropped: 0
 removed: 0
 delivered: 0

@@ -6,7 +6,7 @@ package movement;
 
 import java.util.List;
 
-import movement.map.DijkstraPathFinder;
+import movement.map.DijkstraPathFinder_back_up;
 import movement.map.MapNode;
 import core.Coord;
 import core.Settings;
@@ -22,7 +22,7 @@ public class CarMovement extends MapBasedMovement implements
 	private Coord from;
 	private Coord to;
 
-	private DijkstraPathFinder pathFinder;
+	private DijkstraPathFinder_back_up pathFinder;
 
 	/**
 	 * Car movement constructor
@@ -30,7 +30,7 @@ public class CarMovement extends MapBasedMovement implements
 	 */
 	public CarMovement(Settings settings) {
 		super(settings);
-		pathFinder = new DijkstraPathFinder(getOkMapNodeTypes());
+		pathFinder = new DijkstraPathFinder_back_up(getOkMapNodeTypes());
 	}
 
 	/**
@@ -62,7 +62,7 @@ public class CarMovement extends MapBasedMovement implements
 		List<MapNode> nodePath = pathFinder.getShortestPath(fromNode, toNode);
 		for (MapNode node : nodePath) { // create a Path from the shortest path
 			path.addWaypoint(node.getLocation());
-			System.out.println("added waypoint");
+//			System.out.println("added waypoint");
 		}
 
 		lastMapNode = toNode;
