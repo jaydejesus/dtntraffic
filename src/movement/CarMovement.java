@@ -6,7 +6,7 @@ package movement;
 
 import java.util.List;
 
-import movement.map.DijkstraPathFinder_back_up;
+import movement.map.DijkstraPathFinder;
 import movement.map.MapNode;
 import core.Coord;
 import core.Settings;
@@ -22,7 +22,7 @@ public class CarMovement extends MapBasedMovement implements
 	private Coord from;
 	private Coord to;
 
-	private DijkstraPathFinder_back_up pathFinder;
+	private DijkstraPathFinder pathFinder;
 
 	/**
 	 * Car movement constructor
@@ -30,7 +30,7 @@ public class CarMovement extends MapBasedMovement implements
 	 */
 	public CarMovement(Settings settings) {
 		super(settings);
-		pathFinder = new DijkstraPathFinder_back_up(getOkMapNodeTypes());
+		pathFinder = new DijkstraPathFinder(getOkMapNodeTypes());
 	}
 
 	/**

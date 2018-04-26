@@ -21,7 +21,6 @@ import core.World;
 
 import movement.map.SimMap;
 import movement.Path;
-import movement.map.DijkstraPathFinder_back_up;
 import movement.map.FastestPathFinder;
 import movement.map.MapNode;
 

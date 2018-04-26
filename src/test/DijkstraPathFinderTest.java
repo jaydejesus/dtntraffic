@@ -7,12 +7,12 @@ package test;
 import java.util.List;
 
 import junit.framework.TestCase;
-import movement.map.DijkstraPathFinder_back_up;
+import movement.map.DijkstraPathFinder;
 import movement.map.MapNode;
 import core.Coord;
 
 public class DijkstraPathFinderTest extends TestCase {
-	private DijkstraPathFinder_back_up r;
+	private DijkstraPathFinder r;
 
 	private final MapNode n1 = newNode(0,0);
 	private final MapNode n2 = newNode(10,0);
@@ -25,7 +25,7 @@ public class DijkstraPathFinderTest extends TestCase {
 
 	protected void setUp() throws Exception {
 		super.setUp();
-		r = new DijkstraPathFinder_back_up(null);
+		r = new DijkstraPathFinder(null);
 		createTopology();
 	}
 

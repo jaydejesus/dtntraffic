@@ -12,7 +12,7 @@ import java.util.List;
 
 import util.ParetoRNG;
 
-import movement.map.DijkstraPathFinder_back_up;
+import movement.map.DijkstraPathFinder;
 import movement.map.MapNode;
 import movement.map.SimMap;
 import core.Coord;
@@ -53,7 +53,7 @@ public class OfficeActivityMovement extends MapBasedMovement implements
 	private int workDayLength;
 	private int startedWorkingTime;
 	private boolean ready;;
-	private DijkstraPathFinder_back_up pathFinder;
+	private DijkstraPathFinder pathFinder;
 
 	private ParetoRNG paretoRNG;
 
@@ -87,7 +87,7 @@ public class OfficeActivityMovement extends MapBasedMovement implements
 		officeMaxWaitTime = settings.getDouble(OFFICE_MAX_WAIT_TIME_SETTING);
 
 		startedWorkingTime = -1;
-		pathFinder = new DijkstraPathFinder_back_up(null);
+		pathFinder = new DijkstraPathFinder(null);
 		mode = WALKING_TO_OFFICE_MODE;
 
 		String officeLocationsFile = null;
