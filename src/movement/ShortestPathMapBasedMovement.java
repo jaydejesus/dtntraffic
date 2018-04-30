@@ -9,6 +9,7 @@ import java.util.List;
 import movement.map.DijkstraPathFinder;
 import movement.map.MapNode;
 import movement.map.PointsOfInterest;
+import core.Coord;
 import core.Settings;
 
 /**
@@ -22,6 +23,9 @@ public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 
 	/** Points Of Interest handler */
 	private PointsOfInterest pois;
+	private Coord initLocation;
+	private boolean hasInitLoc = false;
+	public static final String LOCATION_S = "nodeLocation";
 
 	/**
 	 * Creates a new movement model based on a Settings object's settings.
@@ -29,9 +33,17 @@ public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 	 */
 	public ShortestPathMapBasedMovement(Settings settings) {
 		super(settings);
+		double coords[];
 		this.pathFinder = new DijkstraPathFinder(getOkMapNodeTypes());
 		this.pois = new PointsOfInterest(getMap(), getOkMapNodeTypes(),
 				settings, rng);
+		if(settings.contains(LOCATION_S)) {
+			this.hasInitLoc = true;
+			System.out.println("true " + true);
+			coords = settings.getCsvDoubles(LOCATION_S, 2);
+			this.initLocation = new Coord(coords[0], coords[1]);
+			System.out.println("" + this.initLocation);
+		}
 	}
 
 	/**
@@ -41,15 +53,25 @@ public class ShortestPathMapBasedMovement extends MapBasedMovement implements
 	 */
 	protected ShortestPathMapBasedMovement(ShortestPathMapBasedMovement mbm) {
 		super(mbm);
+//		double coords[];
 		this.pathFinder = mbm.pathFinder;
 		this.pois = mbm.pois;
+//		lastMapNode = this.pois.selectDestination();
+		if(this.hasInitLoc) {
+			this.lastMapNode = pois.getNodeByCoord(initLocation);
+			System.out.println("thislastmapnode: " + this.lastMapNode);
+			System.out.println("" + this.initLocation);
+		}
 	}
 
 	@Override
 	public Path getPath() {
 		Path p = new Path(generateSpeed());
 		MapNode to = pois.selectDestination();
+		System.out.println(pois.selectDestination());
 
+//		lastMapNode = pois.getNodeByCoord(initLocation);
+		System.out.println("lastmapnode: " + lastMapNode);
 		List<MapNode> nodePath = pathFinder.getShortestPath(lastMapNode, to);
 		// this assertion should never fire if the map is checked in read phase
 		assert nodePath.size() > 0 : "No path from " + lastMapNode + " to " +

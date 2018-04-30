@@ -34,6 +34,8 @@ public class NodeGraphic extends PlayFieldGraphic {
 	private static Color msgColor2 = Color.GREEN;
 	private static Color msgColor3 = Color.RED;
 
+	private static Color hostColorSlow = Color.RED;
+	
 	private static Color highlightedNodeColor = Color.MAGENTA;
 
 	private DTNHost node;
@@ -107,22 +109,36 @@ public class NodeGraphic extends PlayFieldGraphic {
 
 
 		/* draw node rectangle */
-		g2.setColor(hostColor);
-		g2.drawRect(scale(loc.getX()-1),scale(loc.getY()-1),
-		scale(2),scale(2));
-
+		
+		if(node.getGroupId().equals("s")) {
+			g2.setColor(hostColorSlow);
+			g2.drawRect(scale(loc.getX()-1),scale(loc.getY()-1),
+			scale(2),scale(2));
+		}
+		else {
+			g2.setColor(hostColor);
+			g2.drawRect(scale(loc.getX()-1),scale(loc.getY()-1),
+			scale(2),scale(2));
+		}
 		if (isHighlighted()) {
 			g2.setColor(highlightedNodeColor);
 			g2.fillRect(scale(loc.getX()) - 3 ,scale(loc.getY()) - 3, 6, 6);
 		}
 
 		if (drawNodeName) {
+			if(node.getGroupId().equals("s")) {
+				g2.setColor(hostColorSlow);
+				g2.drawString(node.toString(), scale(loc.getX()),
+						scale(loc.getY()));
+			}
+			else {
 			g2.setColor(hostNameColor);
 			// Draw node's address next to it
 			g2.drawString(node.toString(), scale(loc.getX()),
 					scale(loc.getY()));
 //			g2.drawString(node.toString() + " " + loc.toString(), scale(loc.getX()),
 //					scale(loc.getY()));
+			}
 		}
 	}
 

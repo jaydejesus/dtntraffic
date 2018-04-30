@@ -10,11 +10,13 @@ import core.Road;
 public class TrafficAppReporter extends Report implements ApplicationListener{
 
 	@Override
-	public void gotEvent(String event, Road myRoad, String basis, double time, double averageSpeed, String trafficCondition, Application app, DTNHost host) {
+	public void gotEvent(String event, Road myRoad, String basis, double time, double averageSpeed, 
+			String trafficCondition, Application app, DTNHost host) {
 	
 		//must add travel time 
 		
-		String report = host + " @ " + time + " on road segment " + myRoad.getStartpoint()+ ", " + myRoad.getEndpoint() + " Basis: " + basis + " Average speed is: " 
+		String report = host + " @ " + time + " on road segment " + myRoad.getStartpoint()+ ", " + 
+				myRoad.getEndpoint() + " Basis: " + basis + " Average speed is: " 
 				+ averageSpeed + " - " + trafficCondition;
 		if (!(app instanceof TrafficApp)) return;
 		

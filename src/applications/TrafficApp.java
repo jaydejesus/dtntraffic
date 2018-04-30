@@ -19,7 +19,6 @@ import core.SimClock;
 import core.SimScenario;
 import core.World;
 
-import movement.map.SimMap;
 import movement.Path;
 import movement.map.FastestPathFinder;
 import movement.map.MapNode;
@@ -73,16 +72,14 @@ public class TrafficApp extends Application{
 	public static final String MEDIUM = "MEDIUM_DENSITY";
 	public static final String HIGH = "HIGH_DENSITY";
 	
-	private static boolean doneRoadSegmentation = false;
-	
 	private static double FRESHNESS = 10.0;
 	private String currentRoadCondition = "";
 	private static final int VEHICLE_SIZE = 2;
 	// Private vars
+	private static final String TRAFFIC_PASSIVE = "passive";
 	
 	private double	lastAppUpdate = 0;
 	private double	appUpdateInterval = 5;
-	private double nodeOnRoad;
 	private int		seed = 0;
 	private int		destMin=0;
 	private int		destMax=1;
@@ -90,16 +87,15 @@ public class TrafficApp extends Application{
 	private Random	rng;
 	private List<Message> msgs_list;
 	private List<Message> neededMsgs;
-	private List<Message> unneededMsgs;
 	private HashMap<DTNHost, Message> msgsHash;
 	private double averageRoadSpeed;
 		
 	private List<DTNHost> sameLaneNodes;
 	private List<Message> frontNodesMsgs;
 	private FastestPathFinder alternativePathFinder;
-	private boolean limiter = false;
 	private int roadCapacity;
 	private String roadDensity = "";
+	private boolean passive = false;
 	
 	/** 
 	 * Creates a new ping application with the given settings.
@@ -107,6 +103,9 @@ public class TrafficApp extends Application{
 	 * @param s	Settings to use for initializing the application.
 	 */
 	public TrafficApp(Settings s) {
+		if (s.contains(TRAFFIC_PASSIVE)){
+			this.passive = s.getBoolean(TRAFFIC_PASSIVE);
+		}
 		if (s.contains(TRAFFIC_INTERVAL)){
 			this.appUpdateInterval = s.getDouble(TRAFFIC_INTERVAL);
 		}
@@ -136,6 +135,7 @@ public class TrafficApp extends Application{
 	 */
 	public TrafficApp(TrafficApp a) {
 		super(a);
+		this.passive = a.isPassive();
 		this.lastAppUpdate = a.getLastPing();
 		this.appUpdateInterval = a.getInterval();
 		this.destMax = a.getDestMax();
@@ -150,6 +150,10 @@ public class TrafficApp extends Application{
 		this.msgsHash = new HashMap<DTNHost, Message>();
 	}
 	
+	private boolean isPassive() {
+		return this.passive;
+	}
+
 	/** 
 	 * Handles an incoming message. If the message is a ping message replies
 	 * with a pong message. Generates events for ping and pong messages.
@@ -165,8 +169,14 @@ public class TrafficApp extends Application{
 		try {
 			 if (type==null) return msg;
 			 
-				if (type.equalsIgnoreCase("traffic")) {
-
+			 if(this.passive) {
+//				 System.out.println(host + " is passive: " + this.passive + " so host is not handling msgs");
+				 return msg;
+			 }
+			 
+			if (type.equalsIgnoreCase("traffic")) {
+					
+//				System.out.println(host + " iiiiiiiiiiis not passiiveeeeeee so it is now handling msgs");
 					if(!this.msgsHash.containsKey(msg.getFrom())) {
 						msgsHash.put(msg.getFrom(), msg);
 					}
@@ -178,19 +188,20 @@ public class TrafficApp extends Application{
 					}
 
 					classifyMsgs(msgsHash, host);
-					if(getTrafficCondition(this.neededMsgs, host) == TRAFFIC_JAM && !host.toString().startsWith("s")) {
+					if(getTrafficCondition(this.neededMsgs, host) == TRAFFIC_JAM) {
 						System.out.println(host + " MUST REROUTE!!!!!");
-						getAlternativePath(host.getPreviousDestination(), host.getCurrentDestination(), host.getPath(), host, host.getCurrentSpeed());
+						System.out.println(host + " current path: " + host.getPath());
+						getAlternativePath(host.getPreviousDestination(), host.getCurrentDestination(), 
+								host.getPathDestination(), host.getSubpath(), host, host.getCurrentSpeed(), host.getPathSpeed());
 					}
 					if(this.neededMsgs.size() < 1)
 						basis = " based on own speed ";
 					else
 						basis = " based on " + this.neededMsgs.size() + " same lane nodes ";
 					
-//					super.sendEventToListeners("TrafficReport", host.getCurrentRoad(), basis, SimClock.getTime(), 
-//							getAverageRoadSpeed(this.neededMsgs, host), this.currentRoadCondition, null, host);
+					super.sendEventToListeners("TrafficReport", host.getCurrentRoad(), basis, SimClock.getTime(), 
+							getAverageRoadSpeed(this.neededMsgs, host), this.currentRoadCondition, null, host);
 					
-					this.limiter = false;
 				}				
 		 }catch(Exception e) {			 
 		 }		
@@ -201,7 +212,7 @@ public class TrafficApp extends Application{
 		this.neededMsgs.clear();
 
 		for(Message m : msgs.values()) {
-			if(SimClock.getTime() - m.getCreationTime() > 10.0) {
+			if(SimClock.getTime() - m.getCreationTime() > FRESHNESS) {
 //				msgs.remove(m.getFrom(), m);
 				continue;
 			}
@@ -308,9 +319,11 @@ public class TrafficApp extends Application{
 				this.currentRoadCondition = FREE_FLOW;
 		}
 		else if(ave_speed <= 0.5) {
-			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(LOW))
+			if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(LOW)) {
 				this.currentRoadCondition = TRAFFIC_JAM;
-			else if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(MEDIUM))
+				System.out.println("Traffic on road " + host.getCurrentRoad().getRoadName());
+			}
+			else if(getRoadDensity(host.getCurrentRoad(), msgs.size()).equals(HIGH))
 				this.currentRoadCondition = MEDIUM_FLOW;
 			else {
 				this.currentRoadCondition = FREE_FLOW;
@@ -322,44 +335,7 @@ public class TrafficApp extends Application{
 			else
 				this.currentRoadCondition = MEDIUM_FLOW;
 		}
-		
-//		System.out.println(host + "road cap: " + getRoadCapacity(host.getCurrentRoad()) + " averageSpeed: " + ave_speed 
-//				+ " density: " + msgs.size() + " " + getRoadDensity(host.getCurrentRoad(), msgs.size()) + " " + this.currentRoadCondition);
-		
-//		//if not high speed
-//		else {
-////			if(ave_frontDistance <= 5.0 && msgs.size() > 5) {
-////				this.currentRoadCondition = TRAFFIC_JAM;
-////			}
-//			if(ave_speed <= 0.5 && msgs.size() > 5 && host.getOppositeLaneNodes().size() > 5 && 
-//					!host.canOvertake()) {
-//				this.currentRoadCondition = TRAFFIC_JAM;
-//			}
-//			else {
-//				this.currentRoadCondition = MEDIUM_FLOW;
-//			}
-//		}
-//		//high speed && low density
-//		if(ave_speed > 5.0 && host.getOppositeLaneNodes().size() < 5 && msgs.size() < 5) {
-//			this.currentRoadCondition = FREE_FLOW;
-//		}
-//		//low speed &&
-//		else {
-//			//dako it opposite lane density pero bulag bulag hira
-//			if(ave_frontDistance > 5.0) {
-//				this.currentRoadCondition = FREE_FLOW;
-//			}
-//			//dako it front density ngan dako it opposite lane density ngan dikit dikit masyado plus gutiay average speed;
-//			else if(ave_frontDistance <= 5.0 && msgs.size() > 5 && 
-//					 host.getOppositeLaneNodes().size() > 5 && getOppositeLaneNodesAverageFrontDistance(host.getOppositeLaneNodes()) <= 5.0) {
-//				this.currentRoadCondition = TRAFFIC_JAM;
-//			}
-//			//dako it opposite lane density pero bulag bulag hira
-//			else {
-//				this.currentRoadCondition = MEDIUM_FLOW;
-//			}
-//		}
-		
+				
 //		System.out.println(host + " road condition: " + this.currentRoadCondition + " ------------" + SimClock.getTime());
 //		System.out.println("===============================================================================================");
 		return this.currentRoadCondition;
@@ -389,6 +365,12 @@ public class TrafficApp extends Application{
 	public void update(DTNHost host) {
 		double curTime = SimClock.getTime();
 
+		if(!this.passive) {
+//			System.out.println("path size: " + host.getPath().getPathSize() + " pathcoord size: " + host.getPath().getCoords().size() + " end mapnode: " + host.getPath().getCoords().get(host.getPath().getPathSize()-1));
+//			if(host.getLocation().equals(host.getPath().getCoords().get(host.getPath().getPathSize()-1)))	
+//				System.out.println(host + " travel time: " + host.getTravelTime() + " @ " + host.getPath());
+		}
+		
 		try {
 //			for(Connection con : host.getConnections()) {
 //				if (con.isUp()) {
@@ -413,9 +395,8 @@ public class TrafficApp extends Application{
 						host.createNewMessage(m);
 
 						super.sendEventToListeners("SentPing", null, host);
-						//System.out.println(SimClock.getTime() + " --- " + host + " has sent a msg to connection: " + con.getOtherNode(host) + " @" +m.getCreationTime());
+//						System.out.println(SimClock.getTime() + " --- " + host + " has sent a msg to connection: ");
 						this.lastAppUpdate = curTime;
-						this.limiter = true;
 					}
 //				}
 
@@ -435,25 +416,31 @@ public class TrafficApp extends Application{
 //kailangan an slowdown asya na para an possible movement han node sakto la based ha iya speed(na mahinay)
 //kailangan an basis han fastest path kay an average road speed han mga roads na iya aagian
 	
-	public Path getAlternativePath(Coord start, Coord destination, Path path, DTNHost host, double speed) {
+	public void getAlternativePath(Coord start, Coord currentDestination, Coord finalDestination, List<Coord> path, DTNHost host, double slowSpeed, double pathSpeed) {
 		this.alternativePathFinder = new FastestPathFinder(host.getMovementModel().getOkMapNodeTypes2());
 //		System.out.println("okmapnodes: " + host.getMovementModel().getOkMapNodeTypes2());
-		Path p = new Path(path.getSpeed());
+		Path p = new Path(pathSpeed);
 		MapNode s = host.getMovementModel().getMap().getNodeByCoord(start);
-		MapNode dest = host.getMovementModel().getMap().getNodeByCoord(destination);
+		MapNode currentDest = host.getMovementModel().getMap().getNodeByCoord(currentDestination);
+		MapNode dest = host.getMovementModel().getMap().getNodeByCoord(finalDestination);
 		List<MapNode> altMapNodes = new ArrayList<MapNode>();
-		altMapNodes = this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed());
-//		System.out.println("re: path= " + this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed()));
-//		System.out.println("Getting reroute path");
-		for(MapNode n : altMapNodes) {
-			p.addWaypoint(n.getLocation());
-		}
+		altMapNodes = this.alternativePathFinder.getAlternativePath(s, currentDest, dest, host.getLocation(), slowSpeed, pathSpeed, path);
+		System.out.println("Orig path " + host.getPathSpeed());
+		if(altMapNodes == null)
+			System.out.println("Path finder couldn't suggest faster routes. Sticking to current path.");
+		else {
+//			System.out.println("re: path= " + this.alternativePathFinder.getAlternativePath(s, dest, host.getLocation(), path, host.getCurrentSpeed()));
+//			System.out.println("Getting reroute path");
+			for(MapNode n : altMapNodes) {
+				p.addWaypoint(n.getLocation());
+			}
 
-//		System.out.println("in app: " + p);
-		System.out.println("called host reroute for " + host);
-		host.reroute(p);
-		System.out.println("done calling host reroute=================================");
-		return p;
+//			System.out.println("in app: " + p);
+			System.out.println("called host reroute for " + host);
+			host.reroute(p);
+			System.out.println("done calling host reroute=================================");
+		}
+			
 	}
 
 	//compute travel time of host on current path

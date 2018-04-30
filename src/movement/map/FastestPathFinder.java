@@ -15,7 +15,6 @@ import java.util.Queue;
 import java.util.Set;
 
 import core.Coord;
-import movement.Path;
 
 /**
  * Implementation of the Dijkstra's shortest path algorithm.
@@ -26,8 +25,8 @@ public class FastestPathFinder {
 	/** Initial size of the priority queue */
 	private static final int PQ_INIT_SIZE = 11;
 
-	/** Map of node distances from the source node */
-	private DistanceMap travelTimes;
+	/** Map of node travel times (based on path speed) from the source node */
+	private TravelTimeMap travelTimes;
 	/** Set of already visited nodes (where the shortest path is known) */
 	private Set<MapNode> visited;
 	/** Priority queue of unvisited nodes discovered so far */
@@ -56,25 +55,25 @@ public class FastestPathFinder {
 
 		// create needed data structures
 		this.unvisited = new PriorityQueue<MapNode>(PQ_INIT_SIZE,
-				new DistanceComparator());
+				new TravelTimeComparator());
 		this.visited = new HashSet<MapNode>();
 		this.prevNodes = new HashMap<MapNode, MapNode>();
-		this.travelTimes = new DistanceMap();
+		this.travelTimes = new TravelTimeMap();
 
-		// set distance to source 0 and initialize unvisited queue
+		// set traveltime to source 0 and initialize unvisited queue
 		this.travelTimes.put(node, 0);
 		this.unvisited.add(node);
 	}
-
-
 	/**
-	 * Relaxes the neighbors of a node (updates the shortest distances).
+	 * Relaxes the neighbors of a node (updates the shortest travelTimes).
 	 * @param node The node whose neighbors are relaxed
 	 */
-	private void relaxV2(MapNode node, MapNode nono, double speedNono, double speedReroute) {
-		double nodeTravelTime = travelTimes.get(node);
-		
+	private void relax(MapNode node, MapNode prevDest, MapNode currDest, double pathSpeed) {
+		double nodeTravTime = travelTimes.get(node);
 		for (MapNode n : node.getNeighbors()) {
+			if(node == prevDest && n == currDest) {
+				continue; //skip current traffic
+			}
 			if (visited.contains(n)) {
 				continue; // skip visited nodes
 			}
@@ -83,15 +82,14 @@ public class FastestPathFinder {
 				continue; // skip nodes that are not OK
 			}
 
-			// n node's distance from path's source node
-			double nTravelTime = nodeTravelTime + getTravelTime(node, n, nono, speedNono, speedReroute);
+			// n node's traveltime from path's source node
+			double nTravTime = nodeTravTime + getTravelTime(node, n, pathSpeed);
 
-			if (travelTimes.get(n) > nTravelTime) { // stored distance > found dist?
+			if (travelTimes.get(n) > nTravTime) { // stored distance > found dist?
 				prevNodes.put(n, node);
-				setTravelTime(n, nTravelTime);
+				setTravelTime(n, nTravTime);
 			}
 		}
-//		System.out.println("RELAX: " + node + " ===== neighbors: " + node.getNeighbors() + " prevNodes: " + prevNodes);
 	}
 
 	/**
@@ -99,68 +97,89 @@ public class FastestPathFinder {
 	 * @param n The node whose distance is set
 	 * @param distance The distance of the node from the source node
 	 */
-	private void setTravelTime(MapNode n, double distance) {
+	private void setTravelTime(MapNode n, double travelTime) {
 		unvisited.remove(n); // remove node from old place in the queue
-		travelTimes.put(n, distance); // update distance
+		travelTimes.put(n, travelTime); // update travel time
 		unvisited.add(n); // insert node to the new place in the queue
 	}
 
 	/**
-	 * Returns the (euclidean) distance between the two map nodes
+	 * Returns the travel time = (euclidean)distance/speed between the two map nodes
 	 * @param from The first node
 	 * @param to The second node
-	 * @return Euclidean distance between the two map nodes
+	 * @return Euclidean distance / speed between the two map nodes
 	 */
-	private double getTravelTime(MapNode from, MapNode to, MapNode nono, double speedNono, double speedReroute) {
-		if(to.equals(nono)) {
-//			System.out.println("Traveltime from " + from + " to " + to + " is " + (from.getLocation().distance(to.getLocation()))/speedNono);
-			return (from.getLocation().distance(to.getLocation()))/speedNono;
-		}
-//		System.out.println("Traveltime from " + from + " to " + to + " is " + (from.getLocation().distance(to.getLocation()))/speedReroute);
-		return (from.getLocation().distance(to.getLocation()))/speedReroute;
+	private double getTravelTime(MapNode from, MapNode to, double speed) {
+		return from.getLocation().distance(to.getLocation())/speed;
 	}
 	
-	public List<MapNode> getAlternativePath(MapNode from, MapNode to, Coord currentLocation, Path currentPath, double speed) {
+	/**
+	 * Returns the travel time = (euclidean)distance/speed between the two map nodes
+	 * @param currLocation The current location of the host upon method call
+	 * @param prevDest The previous destination, also the rerouting start point
+	 * @param currDest The current destination of the host
+	 * @param finalDest The final destination of the host
+	 * @param slowSpeed The speed based on the traffic
+	 * @param pathSpeed The speed to be used as basis for rerouting
+	 * @param contPathCoords The coordinates ahead of the current path 
+	 * @return Resulting fastest route based on algorithm calculation/estimation 
+	 */
+	public List<MapNode> getAlternativePath(MapNode prevDest, MapNode currDest, MapNode finalDest, Coord currLocation, double slowSpeed, 
+			double pathSpeed, List<Coord> contPathCoords) {
 		List<MapNode> path = new LinkedList<MapNode>();
-//		System.out.println("Here in altpath");
-		//distance speed time variables
-		double d, t, s;
-		d = currentLocation.distance(to.getLocation());
-		s = speed;
-		t= 0;
+
+		double rerouteTravTime = currLocation.distance(prevDest.getLocation())/pathSpeed;
+		double currentPathTravTime = currLocation.distance(currDest.getLocation())/slowSpeed;
 		
-		if (from.compareTo(to) == 0) { // source and destination are the same
-			path.add(from); // return a list containing only source node
+		if (prevDest.compareTo(finalDest) == 0) { // source and destination are the same
+			path.add(prevDest); // return a list containing only source node
 			return path;
 		}
 
-		initWith(from);
+		initWith(prevDest);
 		MapNode node = null;
 
 		// always take the node with shortest distance
 		while ((node = unvisited.poll()) != null) {
-			if (node == to) {
+			if (node == finalDest) {
 				break; // we found the destination -> no need to search further
 			}
 
 			visited.add(node); // mark the node as visited
-			relaxV2(node, to, speed, currentPath.getSpeed()); // add/update neighbor nodes' distances
+			relax(node, prevDest, currDest, pathSpeed); // add/update neighbor nodes' travelTimes
 		}
 
 		// now we either have the path or such path wasn't available
-		if (node == to) { // found a path
-			path.add(0,to);
-			MapNode prev = prevNodes.get(to);
-			while (prev != from) {
+		if (node == finalDest) { // found a path
+			path.add(0,finalDest);
+			MapNode prev = prevNodes.get(finalDest);
+			while (prev != prevDest) {
 				path.add(0, prev);	// always put previous node to beginning
 				prev = prevNodes.get(prev);
 			}
 
-			path.add(0, from); // finally put the source node to first node
+			path.add(0, prevDest); // finally put the source node to first node
 		}
-
-//		System.out.println("Current path: " + currentPath) ;
-//		System.out.println("reroute path: " + path);
+		System.out.println("reroute path: " + path);
+		
+		System.out.println("reroute paaaath traveltimes");
+		for(int i = 0; i < path.size()-1; i++) {
+			Coord c1 = path.get(i).getLocation();
+			Coord c2 = path.get(i+1).getLocation();
+//			System.out.println("from " + c1 + " to " + c2 + " : " + (c1.distance(c2)/pathSpeed));
+			rerouteTravTime = rerouteTravTime + (c1.distance(c2)/pathSpeed);
+		}
+		System.out.println("reroute path total travel time : " + rerouteTravTime);
+		System.out.println("current paaaath traveltimes");
+		for(int i = 0; i < contPathCoords.size()-1; i++) {
+			Coord c1 = contPathCoords.get(i);
+			Coord c2 = contPathCoords.get(i+1);
+//			System.out.println("from " + c1 + " to " + c2 + " : " + (c1.distance(c2)/pathSpeed));
+			currentPathTravTime = currentPathTravTime + (c1.distance(c2)/pathSpeed);
+		}
+		System.out.println("current path total travel time : " + currentPathTravTime);
+		if(rerouteTravTime > currentPathTravTime)
+			return null;
 		return path;
 	}
 	
@@ -169,7 +188,7 @@ public class FastestPathFinder {
 	 * Comparator that compares two map nodes by their distance from
 	 * the source node.
 	 */
-	private class DistanceComparator implements Comparator<MapNode> {
+	private class TravelTimeComparator implements Comparator<MapNode> {
 
 		/**
 		 * Compares two map nodes by their distance from the source node
@@ -193,15 +212,15 @@ public class FastestPathFinder {
 	}
 
 	/**
-	 * Simple Map implementation for storing distances.
+	 * Simple Map implementation for storing travelTimes.
 	 */
-	private class DistanceMap {
+	private class TravelTimeMap {
 		private HashMap<MapNode, Double> map;
 
 		/**
 		 * Constructor. Creates an empty distance map
 		 */
-		public DistanceMap() {
+		public TravelTimeMap() {
 			this.map = new HashMap<MapNode, Double>();
 		}
 
@@ -226,8 +245,8 @@ public class FastestPathFinder {
 		 * @param node The node
 		 * @param distance Distance to that node
 		 */
-		public void  put(MapNode node, double distance) {
-			map.put(node, distance);
+		public void  put(MapNode node, double travelTime) {
+			map.put(node, travelTime);
 		}
 
 		/**

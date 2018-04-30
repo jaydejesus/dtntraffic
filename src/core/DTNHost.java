@@ -52,6 +52,13 @@ public class DTNHost implements Comparable<DTNHost> {
 	private int pathIndex;
 
 	private double frontDistance;
+//	private double travelStart;
+//	private double travelEnd;
+	private double travelTime;
+	private double prevTravelTime;
+	private String groupId;
+	
+	
 	static {
 		DTNSim.registerForReset(DTNHost.class.getCanonicalName());
 		reset();
@@ -77,6 +84,8 @@ public class DTNHost implements Comparable<DTNHost> {
 		this.name = groupId+address;
 		this.net = new ArrayList<NetworkInterface>();
 
+		this.groupId = groupId;
+		
 		for (NetworkInterface i : interf) {
 			NetworkInterface ni = i.replicate();
 			ni.setHost(this);
@@ -129,6 +138,10 @@ public class DTNHost implements Comparable<DTNHost> {
 		nextAddress = 0;
 	}
 
+	public String getGroupId() {
+		return this.groupId;
+	}
+	
 	public MapBasedMovement getMovementModel() {
 		return (MapBasedMovement) this.movement;
 	}
@@ -233,6 +246,10 @@ public class DTNHost implements Comparable<DTNHost> {
 		return this.subpath;
 	}
 
+	public double getPathSpeed() {
+		return this.path.getSpeed();
+	}
+	
 	/**
 	 * Sets the Node's location overriding any location set by movement model
 	 * @param location The location to set
@@ -408,10 +425,14 @@ public class DTNHost implements Comparable<DTNHost> {
 		double dx, dy;
 		DTNHost frontNode;
 
+		if(this.toString().startsWith("n"))
+//			System.out.println("time: " + SimClock.getTime() + " traveltime: " + this.travelTime + " prevtriptravtime: " + this.prevTravelTime + " @ " + this.location + " path: " + this.path);
+		
 		if (!isMovementActive() || SimClock.getTime() < this.nextTimeToMove) {
 			return;
 		}
 		if (this.destination == null) {
+			this.prevTravelTime = this.travelTime;
 			if (!setNextWaypoint()) {
 				System.out.println("DTNHost-null destination...->setNextWaypoint");
 				return;
@@ -444,7 +465,7 @@ public class DTNHost implements Comparable<DTNHost> {
 			possibleMovement = timeIncrement * speed;
 		}
 		distance = this.location.distance(this.destination);
-		
+		this.travelTime = this.travelTime + timeIncrement;
 
 		while (possibleMovement >= distance) {
 			// node can move past its next destination
@@ -472,7 +493,11 @@ public class DTNHost implements Comparable<DTNHost> {
 	 */
 	private boolean setNextWaypoint() {
 		if (path == null) {
-			path = movement.getPath();			
+			this.prevTravelTime = this.travelTime;
+//			if(this.toString().equals("n30"))
+//				System.out.println(this + " travel time: " + this.prevTravelTime);
+			path = movement.getPath();
+			this.travelTime = 0;
 		}
 
 		if (path == null || !path.hasNext()) {
@@ -483,7 +508,7 @@ public class DTNHost implements Comparable<DTNHost> {
 
 		this.prevDestination = this.destination;		
 		this.destination = path.getNextWaypoint();
-		this.subpath = this.path.getSubpath(path.getWaypointIndex(), path.getPathSize());
+		this.subpath = this.path.getSubpath(path.getWaypointIndex()-1, path.getPathSize());
 		this.pathIndex = this.path.getWaypointIndex();
 		getRoadsAhead();
 //		System.out.println(this + " : " + this.path.getCoords());
@@ -614,7 +639,8 @@ public class DTNHost implements Comparable<DTNHost> {
 		return this.prevDestination;
 	}
 	
-	public Coord getCurrentPathDestination() {
+	
+	public Coord getPathDestination() {
 		return this.path.getCoords().get(this.path.getCoords().size()-1);
 	}
 	
@@ -815,9 +841,9 @@ public class DTNHost implements Comparable<DTNHost> {
 		System.out.println("Setting reroute path of host: " + p);
 //		System.out.println("Subpath: " + this.getSubpath());
 		System.out.println("Previous path: " + this.path);
-		for(int i = this.pathIndex; i < this.path.getCoords().size(); i++) {
-			p.addWaypoint(this.path.getCoords().get(i));
-		}
+//		for(int i = this.pathIndex; i < this.path.getCoords().size(); i++) {
+//			p.addWaypoint(this.path.getCoords().get(i));
+//		}
 		System.out.println("rerouted path: " + p);
 		this.path = p;
 		
@@ -833,8 +859,8 @@ public class DTNHost implements Comparable<DTNHost> {
 		this.destination = p.getCoords().get(0);
 	}
 	
-	public void getTotalTravelTime() {
-		
+	public double getTravelTime() {
+		return this.prevTravelTime;
 	}
 	
 	public void updateTravelTime(double travelTime) {

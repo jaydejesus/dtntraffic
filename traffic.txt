@@ -2,17 +2,40 @@
 # a report module that counts the number of pings & pongs sent & received
 
 # Define new application
-trafficApp.type = TrafficApp
-trafficApp.interval = 1
-//trafficApp.destinationRange = 0,100
-trafficApp.destinationRange = 0,1500
-trafficApp.pingSize = 5
-trafficApp.pongSize = 5
-trafficApp.passive = false
+trafficAppT.type = TrafficApp
+trafficAppT.interval = 1
+#trafficAppT.destinationRange = 0,100
+trafficAppT.pingSize = 5
+trafficAppT.pongSize = 5
+trafficAppT.passive = true
+
+trafficAppF.type = TrafficApp
+trafficAppF.interval = 1
+#trafficApp.destinationRange = 0,100
+trafficAppF.pingSize = 5
+trafficAppF.pongSize = 5
+trafficAppF.passive = false
 
 # Set Traffic Application app for all nodes
 Group.nrofApplications = 1
-Group.application1 = trafficApp
+Group1.speed = 8.0, 11.0
+Group1.nrofHosts =300
+Group1.groupID = n
+Group1.pois = 1, 1.0
+Group1.application1 = trafficAppF
+
+Group2.speed = 0.3, 0.5
+Group2.nrofHosts = 300
+Group2.groupID = s
+Group2.pois = 1, 1.0
+Group2.application1 = trafficAppT
+Group2.nodeLocation = 2089.62,878.57
+
+Group3.speed = 8.0, 11.0
+Group3.nrofHosts = 300
+Group3.groupID = m
+Group3.pois = 1, 1.0
+Group3.application1 = trafficAppF
 
 # Add report for Ping app
 Report.nrofReports = 2
